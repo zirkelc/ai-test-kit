@@ -53,6 +53,24 @@ const parts = [...StreamParts.text('Hello World'), StreamParts.finish()];
 const drained = await Streams.toArray(Streams.from(parts)); // round-trips parts
 ```
 
+### Errors
+
+Layer-agnostic error builders from the root entry `ai-test-kit` for the provider errors a model throws. Drop one straight into a mock to drive retry, fallback, and error-handling tests. The named factories carry the realistic shape of each category (status code, message, `Retry-After`); `Errors.from` is the escape hatch for anything else.
+
+```typescript
+import { generateText } from 'ai';
+import { Errors } from 'ai-test-kit';
+import { MockLanguageModel } from 'ai-test-kit/language';
+
+const model = MockLanguageModel.from([Errors.rateLimited({ retryAfter: 5 }), 'Recovered']);
+
+await generateText({ model, prompt: 'Hello' }).catch(() => {}); // first call throws a 429
+const { text } = await generateText({ model, prompt: 'Hello' }); // second call recovers
+text; // 'Recovered'
+```
+
+`isRetryable` is left to `APICallError`, which derives it from the status code (`408`/`409`/`429`/`5xx`), matching how the AI SDK builds the error. `retryAfter` accepts seconds (`number`), an absolute `Date`, or `{ ms }`, mapping to the `retry-after` / `retry-after-ms` headers a provider sends.
+
 ### Language Models
 
 Helpers from `ai-test-kit/language` to mock a model and build the content and stream parts it returns.
@@ -436,6 +454,79 @@ Iterables.toArray<ITEM>(iterable: AsyncIterable<ITEM>): Promise<ITEM[]>
 ```ts
 Iterables.toStream<ITEM>(iterable: AsyncIterable<ITEM>): ReadableStream<ITEM>
 // Iterables.toStream(iterable): a ReadableStream emitting a, then b
+```
+
+### Errors
+
+Generic, layer-agnostic error builders exported from the root `ai-test-kit`.
+
+#### `Errors`
+
+Builders for the provider errors a mock model throws. The named factories set a realistic status code and message; `isRetryable` is left to `APICallError`, which derives it from the status (`408`/`409`/`429`/`5xx`).
+
+#### `.from(options?)`
+
+The generic `APICallError` builder; fills the fields a test rarely cares about (`url`, `requestBodyValues`).
+
+```ts
+Errors.from(options?: ApiCallErrorOptions): APICallError
+// Errors.from({ statusCode: 500 }): a retryable APICallError (status-derived)
+```
+
+#### `.rateLimited(options?)`
+
+```ts
+Errors.rateLimited(options?: { message?: string; retryAfter?: RetryAfter }): APICallError
+// status 429; retryAfter sets a retry-after / retry-after-ms header
+```
+
+#### `.serviceUnavailable(options?)`
+
+```ts
+Errors.serviceUnavailable(options?: { message?: string; retryAfter?: RetryAfter }): APICallError
+// status 503; retryAfter sets a retry-after / retry-after-ms header
+```
+
+#### `.serviceOverloaded(options?)`
+
+```ts
+Errors.serviceOverloaded(options?: { message?: string }): APICallError
+// status 529
+```
+
+#### `.internalServerError(options?)`
+
+```ts
+Errors.internalServerError(options?: { message?: string }): APICallError
+// status 500
+```
+
+#### `.badRequest(options?)`
+
+```ts
+Errors.badRequest(options?: { message?: string }): APICallError
+// status 400 (not retryable)
+```
+
+#### `.unauthorized(options?)`
+
+```ts
+Errors.unauthorized(options?: { message?: string }): APICallError
+// status 401 (not retryable)
+```
+
+#### `.timeout(options?)`
+
+```ts
+Errors.timeout(options?: { message?: string }): DOMException
+// a TimeoutError DOMException, as AbortSignal.timeout() produces
+```
+
+#### `.abort(options?)`
+
+```ts
+Errors.abort(options?: { message?: string }): DOMException
+// an AbortError DOMException, as controller.abort() produces
 ```
 
 ### Language Models
@@ -1027,6 +1118,28 @@ Simulated timing shared by `Streams.simulate`, `MockLanguageModel.streamResult`,
 ```ts
 import type { StreamDelayOptions } from 'ai-test-kit';
 // { initialDelayInMs?: number | null; chunkDelayInMs?: number | null; abortSignal?: AbortSignal }
+```
+
+### Errors
+
+Exported from the root `ai-test-kit`.
+
+#### `RetryAfter`
+
+A `Retry-After` value in any form a provider sends it: `number` (seconds, emitted as `retry-after`), `Date` (HTTP-date, emitted as `retry-after`), or `{ ms }` (milliseconds, emitted as `retry-after-ms`).
+
+```ts
+import type { RetryAfter } from 'ai-test-kit';
+// number | Date | { ms: number }
+```
+
+#### `ApiCallErrorOptions`
+
+The options accepted by `Errors.from`. Everything is optional; the noise fields default to inert values, and an omitted `isRetryable` is derived from the status code by `APICallError`.
+
+```ts
+import type { ApiCallErrorOptions } from 'ai-test-kit';
+// { message?; statusCode?; isRetryable?; responseHeaders?; responseBody?; url?; requestBodyValues?; data?; cause? }
 ```
 
 ### Language Models

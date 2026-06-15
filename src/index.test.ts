@@ -7,4 +7,9 @@ describe('root barrel', () => {
     expect(typeof root.Streams).toBe('object');
     expect(typeof root.Iterables).toBe('object');
   });
+
+  test('should export the generic error helpers', () => {
+    // Assert
+    expect(typeof root.Errors).toBe('object');
+  });
 });
