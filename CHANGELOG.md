@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/zirkelc/ai-test-kit/compare/v1.2.0...v1.3.0) (2026-06-15)
+
+
+### Features
+
+* add Errors namespace for mocking provider errors ([04c5a28](https://github.com/zirkelc/ai-test-kit/commit/04c5a28f7f68a5b4278b675fc533a898d489e24f))
+
 ## [1.2.0](https://github.com/zirkelc/ai-test-kit/compare/v1.1.0...v1.2.0) (2026-06-15)
 
 
