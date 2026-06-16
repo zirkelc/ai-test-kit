@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { StreamParts } from './language/stream-parts.js';
-import { Streams } from './stream.js';
+import { Streams } from './streams.js';
 
 describe('Streams', () => {
   test('from() and toArray() should round-trip parts', async () => {

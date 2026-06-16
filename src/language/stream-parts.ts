@@ -2,7 +2,7 @@ import type { LanguageModelV3FinishReason, LanguageModelV3StreamPart, LanguageMo
 import { defaultFinishReason, defaultUsage, toFinishReason } from '../internal/defaults.js';
 import { toJSONString } from '../internal/json.js';
 import { tokenize } from '../internal/tokenize.js';
-import { ContentParts } from './content.js';
+import { ContentParts } from './content-parts.js';
 
 /** The `warnings` array carried by a `stream-start` part. */
 type StreamStartWarnings = Extract<LanguageModelV3StreamPart, { type: 'stream-start' }>['warnings'];

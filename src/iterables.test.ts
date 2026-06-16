@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { Iterables } from './iterable.js';
-import { Streams } from './stream.js';
+import { Iterables } from './iterables.js';
+import { Streams } from './streams.js';
 
 describe('Iterables', () => {
   test('from() and toArray() should round-trip items', async () => {

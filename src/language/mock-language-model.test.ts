@@ -1,7 +1,7 @@
 import { generateText, streamText } from 'ai';
 import { describe, expect, test } from 'vitest';
-import { Streams } from '../stream.js';
-import { ContentParts } from './content.js';
+import { Streams } from '../streams.js';
+import { ContentParts } from './content-parts.js';
 import { MockLanguageModel } from './mock-language-model.js';
 import { Options } from './options.js';
 import { StreamParts } from './stream-parts.js';

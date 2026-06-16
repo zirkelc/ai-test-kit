@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ContentParts } from './content.js';
+import { ContentParts } from './content-parts.js';
 
 describe('ContentParts', () => {
   test('text() should build a text part', () => {

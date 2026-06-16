@@ -11,8 +11,8 @@ import type {
 import { type Mock, vi } from 'vitest';
 import { defaultFinishReason, defaultUsage, toFinishReason } from '../internal/defaults.js';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
-import { ContentParts } from './content.js';
-import { simulateStream, type StreamDelayOptions } from '../stream.js';
+import { ContentParts } from './content-parts.js';
+import { simulateStream, type StreamDelayOptions } from '../streams.js';
 import { StreamParts } from './stream-parts.js';
 
 /** A (possibly partial) non-streaming result; only `content` is required, the rest defaults. */
