@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/zirkelc/ai-test-kit/compare/v1.3.0...v1.4.0) (2026-06-18)
+
+
+### Features
+
+* rename MockResponse keys to doGenerate/doStream ([b94bfb5](https://github.com/zirkelc/ai-test-kit/commit/b94bfb5682a656678986837206523686ca142a8d))
+
+
+### Code Refactoring
+
+* rename files to match pluralized namespaces ([7bd22c0](https://github.com/zirkelc/ai-test-kit/commit/7bd22c08432ba3aa272c32dd46bfcc6be5e167af))
+
 ## [1.3.0](https://github.com/zirkelc/ai-test-kit/compare/v1.2.0...v1.3.0) (2026-06-15)
 
 
