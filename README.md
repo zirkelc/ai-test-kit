@@ -213,26 +213,26 @@ const result = streamText({ model, prompt: 'Hi', abortSignal: controller.signal 
 
 #### Different Responses per Method
 
-Use the `{ generate, stream }` form to drive `doGenerate` and `doStream` independently — for example to return plain text non-streaming but a richer sequence when streamed.
+Use the `{ doGenerate, doStream }` form to drive `doGenerate` and `doStream` independently — for example to return plain text non-streaming but a richer sequence when streamed. The keys mirror the `LanguageModelV3` method names.
 
 ```typescript
 import { MockLanguageModel, StreamParts } from 'ai-test-kit/language';
 
 const model = MockLanguageModel.from({
-  generate: 'Final answer',
-  stream: [...StreamParts.text('Final answer'), StreamParts.finish()],
+  doGenerate: 'Final answer',
+  doStream: [...StreamParts.text('Final answer'), StreamParts.finish()],
 });
 ```
 
 #### Input-Dependent Responses
 
-For a response that depends on the call (the prompt, tools, or settings), pass a function to `generate` / `stream`. It receives the `doGenerate` / `doStream` call options and returns the result directly — the escape hatch for cases the declarative forms can't express, including a fully custom `LanguageModelV3StreamResult`. The result builders pair well here.
+For a response that depends on the call (the prompt, tools, or settings), pass a function to `doGenerate` / `doStream`. It receives the call options and returns the result directly — the escape hatch for cases the declarative forms can't express, including a fully custom `LanguageModelV3StreamResult`. The result builders pair well here.
 
 ```typescript
 import { MockLanguageModel } from 'ai-test-kit/language';
 
 const model = MockLanguageModel.from({
-  generate: async ({ prompt }) => MockLanguageModel.generateResult(prompt.length > 1 ? 'multi-turn' : 'single-turn'),
+  doGenerate: async ({ prompt }) => MockLanguageModel.generateResult(prompt.length > 1 ? 'multi-turn' : 'single-turn'),
 });
 ```
 
@@ -546,8 +546,8 @@ MockLanguageModel.from(input?: MockResponse | MockResponse[], options?: MockLang
 // MockLanguageModel.from('Hi'): a model returning 'Hi' from generate and stream
 // MockLanguageModel.from(new Error('429')): a model that throws from generate and stream
 // MockLanguageModel.from({ content: [ContentParts.text('Hi')] }): a model returning those parts (stream derived from them)
-// MockLanguageModel.from({ generate: 'A', stream: [...] }): drives doGenerate and doStream independently
-// MockLanguageModel.from({ generate: (options) => result }): a function of the call options (input-dependent)
+// MockLanguageModel.from({ doGenerate: 'A', doStream: [...] }): drives doGenerate and doStream independently
+// MockLanguageModel.from({ doGenerate: (options) => result }): a function of the call options (input-dependent)
 // MockLanguageModel.from([new Error('429'), 'ok']): sequences responses per call, clamping to the last
 ```
 
@@ -1155,7 +1155,7 @@ type MockResponse =
   | string // text, for both generate and stream
   | Error // both methods throw
   | { content; finishReason?; usage? } // generate result, or a derived stream
-  | { generate?; stream? }; // generate and/or stream explicitly
+  | { doGenerate?; doStream? }; // doGenerate and/or doStream explicitly
 ```
 
 #### `MockLanguageModel`

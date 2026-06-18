@@ -56,7 +56,7 @@ describe('MockLanguageModel', () => {
     test('should resolve the generate form from a function of the call options', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        generate: async (options) => MockLanguageModel.generateResult(`prompt-parts:${options.prompt.length}`),
+        doGenerate: async (options) => MockLanguageModel.generateResult(`prompt-parts:${options.prompt.length}`),
       });
 
       // Act
@@ -97,7 +97,7 @@ describe('MockLanguageModel', () => {
     test('should stream from composed StreamParts', async () => {
       // Arrange
       const chunks = [StreamParts.streamStart(), ...StreamParts.text('abcdef', { length: 2 }), StreamParts.finish()];
-      const model = MockLanguageModel.from({ stream: chunks });
+      const model = MockLanguageModel.from({ doStream: chunks });
 
       // Act
       const result = streamText({ model, prompt: 'Hi', ...Options.stream });
@@ -136,7 +136,7 @@ describe('MockLanguageModel', () => {
     test('should stream from a chunks object with delays', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        stream: { chunks: [...StreamParts.text('fast'), StreamParts.finish()], chunkDelayInMs: 0 },
+        doStream: { chunks: [...StreamParts.text('fast'), StreamParts.finish()], chunkDelayInMs: 0 },
       });
 
       // Act
@@ -150,7 +150,7 @@ describe('MockLanguageModel', () => {
     test('should resolve the stream form from a function of the call options', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        stream: async (options) => MockLanguageModel.streamResult(options.prompt.length > 0 ? 'has-prompt' : 'empty'),
+        doStream: async (options) => MockLanguageModel.streamResult(options.prompt.length > 0 ? 'has-prompt' : 'empty'),
       });
 
       // Act
@@ -164,7 +164,7 @@ describe('MockLanguageModel', () => {
     test('should stream from a bare ReadableStream in the stream form', async () => {
       // Arrange
       const parts = [StreamParts.streamStart(), ...StreamParts.text('piped'), StreamParts.finish()];
-      const model = MockLanguageModel.from({ stream: Streams.from(parts) });
+      const model = MockLanguageModel.from({ doStream: Streams.from(parts) });
 
       // Act
       const result = streamText({ model, prompt: 'Hi', ...Options.stream });
@@ -178,7 +178,7 @@ describe('MockLanguageModel', () => {
       // Arrange
       const controller = new AbortController();
       const parts = [StreamParts.streamStart(), ...StreamParts.text('Hello World'), StreamParts.finish()];
-      const model = MockLanguageModel.from({ stream: { chunks: parts, chunkDelayInMs: 10 } });
+      const model = MockLanguageModel.from({ doStream: { chunks: parts, chunkDelayInMs: 10 } });
       const { stream } = await model.doStream({ prompt: [], abortSignal: controller.signal } as never);
       const reader = stream.getReader();
 

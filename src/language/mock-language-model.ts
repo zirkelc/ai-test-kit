@@ -48,14 +48,14 @@ export type StreamResponse =
  *
  * Note: `string` and `{ content }` describe the output for both methods — when streamed, a stream is
  * derived from the content. To sequence responses across calls, pass an `Array<MockResponse>` at the
- * top level. Because of that, a raw stream is expressed via the `stream` form (`{ stream: [...] }`),
- * never a bare array.
+ * top level. Because of that, a raw stream is expressed via the `doStream` form (`{ doStream: [...] }`),
+ * never a bare array. The `doGenerate` / `doStream` keys mirror the `LanguageModelV3` method names.
  */
 export type MockResponse =
   | string
   | Error
   | GenerateResultInput
-  | { generate?: GenerateResponse; stream?: StreamResponse };
+  | { doGenerate?: GenerateResponse; doStream?: StreamResponse };
 
 /** Optional identity overrides for a mock model. */
 export type MockLanguageModelOptions = {
@@ -70,12 +70,12 @@ const notImplemented = (method: 'doGenerate' | 'doStream'): never => {
   throw new Error(`MockLanguageModel.${method} was called but no matching response was provided.`);
 };
 
-/** Narrows a response to the explicit `{ generate, stream }` form. */
-const isExplicit = (response: MockResponse): response is { generate?: GenerateResponse; stream?: StreamResponse } =>
+/** Narrows a response to the explicit `{ doGenerate, doStream }` form. */
+const isExplicit = (response: MockResponse): response is { doGenerate?: GenerateResponse; doStream?: StreamResponse } =>
   typeof response === 'object' &&
   response !== null &&
   !(response instanceof Error) &&
-  ('generate' in response || 'stream' in response);
+  ('doGenerate' in response || 'doStream' in response);
 
 /** Expands a single content part into the stream parts that represent it. */
 const partToStreamParts = (part: LanguageModelV3Content, id: string): Array<LanguageModelV3StreamPart> => {
@@ -117,7 +117,7 @@ const buildStreamResult = (
   stream: simulateStream(chunks, opts),
 });
 
-/** Resolves the `generate` form of an explicit response into a generate result. */
+/** Resolves the `doGenerate` form of an explicit response into a generate result. */
 const resolveGenerateResponse = async (
   response: GenerateResponse,
   options: LanguageModelV3CallOptions,
@@ -128,7 +128,7 @@ const resolveGenerateResponse = async (
   return buildGenerateResult(response);
 };
 
-/** Resolves the `stream` form of an explicit response into a stream result. */
+/** Resolves the `doStream` form of an explicit response into a stream result. */
 const resolveStreamResponse = async (
   response: StreamResponse,
   options: LanguageModelV3CallOptions,
@@ -154,9 +154,9 @@ const resolveGenerate = async (
   if (typeof response === 'string') return buildGenerateResult({ content: [ContentParts.text(response)] });
   if (response instanceof Error) throw response;
   if (isExplicit(response)) {
-    return response.generate === undefined
+    return response.doGenerate === undefined
       ? notImplemented('doGenerate')
-      : resolveGenerateResponse(response.generate, options);
+      : resolveGenerateResponse(response.doGenerate, options);
   }
   if ('content' in response) return buildGenerateResult(response);
   return notImplemented('doGenerate');
@@ -171,7 +171,9 @@ const resolveStream = async (
   if (typeof response === 'string') return buildStreamResult(textToStream(response), { abortSignal });
   if (response instanceof Error) throw response;
   if (isExplicit(response)) {
-    return response.stream === undefined ? notImplemented('doStream') : resolveStreamResponse(response.stream, options);
+    return response.doStream === undefined
+      ? notImplemented('doStream')
+      : resolveStreamResponse(response.doStream, options);
   }
   if ('content' in response) {
     return buildStreamResult(contentToStream(response.content, response.finishReason, response.usage), { abortSignal });
