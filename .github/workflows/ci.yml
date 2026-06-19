@@ -69,3 +69,36 @@ jobs:
         with:
           # https://github.com/googleapis/release-please-action?tab=readme-ov-file#github-credentials
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  # Prerelease (next) line, cut from the `next` branch. Isolated from the stable
+  # release above: it uses its OWN config and manifest (*.next.json) so the
+  # `next` branch never touches main's release-please files. Auto-merges the
+  # release PR so every push to `next` cuts a new prerelease (tag + GitHub
+  # Release flagged prerelease), which release.yml then publishes under the
+  # `next` dist-tag. Delete this job and the *.next.json files when the major
+  # lands on `main`.
+  release-next:
+    name: Release Next
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/next'
+    steps:
+      # https://github.com/googleapis/release-please-action
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          # https://github.com/googleapis/release-please-action?tab=readme-ov-file#github-credentials
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: next
+          config-file: release-please-config.next.json
+          manifest-file: .release-please-manifest.next.json
+
+      # Gated: GitHub auto-merge waits for the branch's required status checks
+      # before merging. Once merged, release-please tags + creates the GitHub
+      # release, which triggers the publish workflow.
+      - name: Enable auto-merge on the next release PR
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: gh pr merge --squash --auto -R "${{ github.repository }}" "${{ fromJSON(steps.release.outputs.pr).number }}"
