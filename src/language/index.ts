@@ -6,6 +6,5 @@ export {
   type StreamResponse,
 } from './mock-language-model.js';
 
-export { ContentParts } from './content-parts.js';
-export { StreamParts, type StreamPartOptions } from './stream-parts.js';
+export { Language, type ResultOptions, type StreamPartOptions } from './language.js';
 export { Options } from './options.js';

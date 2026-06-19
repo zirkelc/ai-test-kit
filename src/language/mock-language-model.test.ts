@@ -1,10 +1,9 @@
 import { generateText, streamText } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { Streams } from '../streams.js';
-import { ContentParts } from './content-parts.js';
+import { Language } from './language.js';
 import { MockLanguageModel } from './mock-language-model.js';
 import { Options } from './options.js';
-import { StreamParts } from './stream-parts.js';
 
 describe('MockLanguageModel', () => {
   describe('generate', () => {
@@ -32,7 +31,7 @@ describe('MockLanguageModel', () => {
 
     test('should return explicit content built from ContentParts atoms', async () => {
       // Arrange
-      const model = MockLanguageModel.from({ content: [ContentParts.text('explicit')] });
+      const model = MockLanguageModel.from({ content: [Language.text('explicit')] });
 
       // Act
       const result = await generateText({ model, prompt: 'Hi', ...Options.generate });
@@ -44,7 +43,7 @@ describe('MockLanguageModel', () => {
 
     test('should accept a unified finish-reason string in the content form', async () => {
       // Arrange
-      const model = MockLanguageModel.from({ content: [ContentParts.text('truncated')], finishReason: 'length' });
+      const model = MockLanguageModel.from({ content: [Language.text('truncated')], finishReason: 'length' });
 
       // Act
       const result = await generateText({ model, prompt: 'Hi', ...Options.generate });
@@ -56,7 +55,7 @@ describe('MockLanguageModel', () => {
     test('should resolve the generate form from a function of the call options', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        doGenerate: async (options) => MockLanguageModel.generateResult(`prompt-parts:${options.prompt.length}`),
+        doGenerate: async (options) => Language.result(`prompt-parts:${options.prompt.length}`),
       });
 
       // Act
@@ -66,10 +65,10 @@ describe('MockLanguageModel', () => {
       expect(result.text).toBe('prompt-parts:1');
     });
 
-    test('should surface a tool call from ContentParts.toolCall', async () => {
+    test('should surface a tool call from Language.toolCall', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        content: [ContentParts.toolCall({ toolCallId: 'call-1', toolName: 'weather', input: { city: 'Tokyo' } })],
+        content: [Language.toolCall({ toolCallId: 'call-1', toolName: 'weather', input: { city: 'Tokyo' } })],
       });
 
       // Act
@@ -96,7 +95,7 @@ describe('MockLanguageModel', () => {
 
     test('should stream from composed StreamParts', async () => {
       // Arrange
-      const chunks = [StreamParts.streamStart(), ...StreamParts.text('abcdef', { length: 2 }), StreamParts.finish()];
+      const chunks = [Language.streamStart(), ...Language.streamText('abcdef', { length: 2 }), Language.streamFinish()];
       const model = MockLanguageModel.from({ doStream: chunks });
 
       // Act
@@ -109,7 +108,7 @@ describe('MockLanguageModel', () => {
 
     test('should derive a stream from content', async () => {
       // Arrange
-      const model = MockLanguageModel.from({ content: [ContentParts.text('derived')] });
+      const model = MockLanguageModel.from({ content: [Language.text('derived')] });
 
       // Act
       const result = streamText({ model, prompt: 'Hi', ...Options.stream });
@@ -122,7 +121,7 @@ describe('MockLanguageModel', () => {
     test('should make a string and the equivalent content stream identically', async () => {
       // Arrange
       const fromString = MockLanguageModel.from('Hello');
-      const fromContent = MockLanguageModel.from({ content: [ContentParts.text('Hello')] });
+      const fromContent = MockLanguageModel.from({ content: [Language.text('Hello')] });
       const callOptions = { prompt: [] } as never;
 
       // Act
@@ -136,7 +135,7 @@ describe('MockLanguageModel', () => {
     test('should stream from a chunks object with delays', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        doStream: { chunks: [...StreamParts.text('fast'), StreamParts.finish()], chunkDelayInMs: 0 },
+        doStream: { chunks: [...Language.streamText('fast'), Language.streamFinish()], chunkDelayInMs: 0 },
       });
 
       // Act
@@ -150,7 +149,7 @@ describe('MockLanguageModel', () => {
     test('should resolve the stream form from a function of the call options', async () => {
       // Arrange
       const model = MockLanguageModel.from({
-        doStream: async (options) => MockLanguageModel.streamResult(options.prompt.length > 0 ? 'has-prompt' : 'empty'),
+        doStream: async (options) => Language.streamResult(options.prompt.length > 0 ? 'has-prompt' : 'empty'),
       });
 
       // Act
@@ -163,7 +162,7 @@ describe('MockLanguageModel', () => {
 
     test('should stream from a bare ReadableStream in the stream form', async () => {
       // Arrange
-      const parts = [StreamParts.streamStart(), ...StreamParts.text('piped'), StreamParts.finish()];
+      const parts = [Language.streamStart(), ...Language.streamText('piped'), Language.streamFinish()];
       const model = MockLanguageModel.from({ doStream: Streams.from(parts) });
 
       // Act
@@ -177,7 +176,7 @@ describe('MockLanguageModel', () => {
     test('should error with an AbortError when the call abortSignal fires mid-stream', async () => {
       // Arrange
       const controller = new AbortController();
-      const parts = [StreamParts.streamStart(), ...StreamParts.text('Hello World'), StreamParts.finish()];
+      const parts = [Language.streamStart(), ...Language.streamText('Hello World'), Language.streamFinish()];
       const model = MockLanguageModel.from({ doStream: { chunks: parts, chunkDelayInMs: 10 } });
       const { stream } = await model.doStream({ prompt: [], abortSignal: controller.signal } as never);
       const reader = stream.getReader();
@@ -264,65 +263,34 @@ describe('MockLanguageModel', () => {
     });
   });
 
-  describe('builders', () => {
-    test('content() should wrap a string into a single text part', () => {
+  describe('callOptions', () => {
+    test('should build valid options defaulting the prompt', () => {
       // Act
-      const parts = MockLanguageModel.content('hi');
+      const options = MockLanguageModel.callOptions();
 
       // Assert
-      expect(parts).toEqual([{ type: 'text', text: 'hi' }]);
+      expect(options.prompt).toEqual([{ role: 'user', content: [{ type: 'text', text: 'Hello!' }] }]);
     });
 
-    test('usage() should override defaults per field', () => {
+    test('should merge overrides', () => {
       // Act
-      const result = MockLanguageModel.usage({ outputTokens: { total: 99 } });
+      const options = MockLanguageModel.callOptions({ temperature: 0.5 });
 
       // Assert
-      expect(result.outputTokens.total).toBe(99);
-      expect(result.inputTokens.total).toBe(10);
+      expect(options.temperature).toBe(0.5);
+      expect(options.prompt.length).toBe(1);
     });
 
-    test('finishReason() should mirror raw from unified', () => {
-      // Act
-      const result = MockLanguageModel.finishReason('length');
-
-      // Assert
-      expect(result).toEqual({ unified: 'length', raw: 'length' });
-    });
-
-    test('generateResult() should build a full result from a string', () => {
-      // Act
-      const result = MockLanguageModel.generateResult('hi');
-
-      // Assert
-      expect(result.content).toEqual([{ type: 'text', text: 'hi' }]);
-      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
-      expect(result.warnings).toEqual([]);
-    });
-
-    test('generateResult() output can drive the doGenerate spy directly', async () => {
+    test('a built result can drive the doGenerate spy directly', async () => {
       // Arrange
       const model = MockLanguageModel.from();
-      model.doGenerate.mockResolvedValue(MockLanguageModel.generateResult('stubbed'));
+      model.doGenerate.mockResolvedValue(Language.result('stubbed'));
 
       // Act
       const result = await generateText({ model, prompt: 'Hi', ...Options.generate });
 
       // Assert
       expect(result.text).toBe('stubbed');
-    });
-
-    test('streamResult() should wrap a ReadableStream as a stream result', async () => {
-      // Arrange
-      const parts = [...StreamParts.text('wrapped'), StreamParts.finish()];
-      const stream = Streams.from(parts);
-
-      // Act
-      const result = MockLanguageModel.streamResult(stream);
-
-      // Assert
-      expect(result.stream).toBe(stream);
-      expect(await Streams.toArray(result.stream)).toEqual(parts);
     });
   });
 

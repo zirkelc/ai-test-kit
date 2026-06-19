@@ -3,5 +3,5 @@ export {
   type ImageResponse,
   MockImageModel,
   type MockImageModelOptions,
-  validBase64Image,
 } from './mock-image-model.js';
+export { Image, validBase64Image } from './image.js';

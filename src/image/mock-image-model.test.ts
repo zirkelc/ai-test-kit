@@ -1,6 +1,7 @@
 import { generateImage } from 'ai';
 import { describe, expect, test } from 'vitest';
-import { MockImageModel, validBase64Image } from './mock-image-model.js';
+import { validBase64Image } from './image.js';
+import { MockImageModel } from './mock-image-model.js';
 
 describe('MockImageModel', () => {
   describe('from', () => {
@@ -118,21 +119,15 @@ describe('MockImageModel', () => {
     });
   });
 
-  describe('builders', () => {
-    test('result should build a full result with deterministic response metadata', () => {
+  describe('callOptions', () => {
+    test('should build valid options with all required keys present', () => {
       // Act
-      const built = MockImageModel.result([validBase64Image]);
+      const options = MockImageModel.callOptions({ prompt: 'A sunset' });
 
       // Assert
-      expect(built.images).toEqual([validBase64Image]);
-      expect(built.warnings).toEqual([]);
-      expect(built.response.timestamp).toEqual(new Date(0));
-      expect(built.response.modelId).toBe('mock-model');
-    });
-
-    test('image should be the valid base64 PNG', () => {
-      // Assert
-      expect(MockImageModel.image).toBe(validBase64Image);
+      expect(options.prompt).toBe('A sunset');
+      expect(options.n).toBe(1);
+      expect(options.providerOptions).toEqual({});
     });
   });
 });
