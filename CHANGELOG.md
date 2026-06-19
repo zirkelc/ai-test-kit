@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v1.4.0...v2.0.0-next) (2026-06-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* ContentParts and StreamParts are removed; use the Language namespace (stream parts are stream-prefixed). The result, usage, and finishReason builders move off the mock namespaces onto Language / Embedding / Image. MockImageModel.image becomes Image.png().
+
+### Features
+
+* restructure model namespaces into Language/Embedding/Image ([f05ed88](https://github.com/zirkelc/ai-test-kit/commit/f05ed88da86ea68ff43c5b473a3e16993494527c))
+
+
+### Continuous Integration
+
+* add next prerelease release line ([18fb645](https://github.com/zirkelc/ai-test-kit/commit/18fb645fca7e8d2deec782475112a3264760d6fc))
+
 ## [1.4.0](https://github.com/zirkelc/ai-test-kit/compare/v1.3.0...v1.4.0) (2026-06-18)
 
 
