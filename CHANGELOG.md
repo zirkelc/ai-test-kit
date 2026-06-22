@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next...v2.0.0-next.1) (2026-06-19)
+
+
+### Continuous Integration
+
+* scope push trigger to main and next ([efd2b45](https://github.com/zirkelc/ai-test-kit/commit/efd2b45e35711df75e6fc4b7643f0956f0b36bfd))
+
 ## [2.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v1.4.0...v2.0.0-next) (2026-06-19)
 
 
