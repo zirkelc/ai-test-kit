@@ -187,6 +187,24 @@ const model = MockLanguageModel.from({
 });
 ```
 
+For the common `stream-start` → content → `finish` shape, `Language.streamParts(...)` builds the whole array in one call (the streaming sibling of `Language.result`), so you rarely assemble it by hand:
+
+```typescript
+import { Language, MockLanguageModel } from 'ai-test-kit/language';
+
+const model = MockLanguageModel.from({ doStream: Language.streamParts('Hello World') });
+// for an error stream, compose explicitly:
+const failing = MockLanguageModel.from({ doStream: [Language.streamStart(), Language.streamError(new Error('boom'))] });
+```
+
+`streamParts` returns the raw parts array — splice it, snapshot it, or feed it to `doStream` as above. When you need a consumable `{ stream }` instead — passing a ready stream, or returning from the function form of `doStream` — use `Language.streamResult(...)`, which wraps the same `string` or parts:
+
+```typescript
+const model = MockLanguageModel.from({
+  doStream: ({ prompt }) => Language.streamResult(prompt.length > 0 ? 'has prompt' : 'empty'),
+});
+```
+
 For timing tests, give the `doStream` form a `{ chunks, ... }` object with delays (or use `Streams.simulate`):
 
 ```typescript
@@ -692,6 +710,16 @@ Language.usage(inputTotal: number, outputTotal: number): LanguageModelV3Usage
 Language.result(input: string | LanguageModelV3Content[], options?: ResultOptions): LanguageModelV3GenerateResult
 // Language.result('hi'): { content: [{ type: 'text', text: 'hi' }], finishReason: { unified: 'stop', raw: 'stop' }, usage, warnings: [] }
 // Language.result([Language.text('hi')], { finishReason: 'length', usage: Language.usage(5, 8) }): finishReason coerced from a unified string; extra fields pass through
+```
+
+#### `.streamParts(input, options?)`
+
+The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
+
+```ts
+Language.streamParts(input: string | LanguageModelV3Content[], options?): LanguageModelV3StreamPart[]
+// Language.streamParts('Hello'): [stream-start, text-start, text-delta…, text-end, finish]
+// Language.streamParts([Language.text('a'), Language.toolCall({…})], { finishReason: 'tool-calls', usage }): start → content → finish
 ```
 
 #### `.streamResult(input, options?)`

@@ -177,4 +177,28 @@ describe('Language', () => {
       expect(parts.at(-1)).toMatchObject({ type: 'finish' });
     });
   });
+
+  describe('streamParts', () => {
+    test('should build a full stream-parts array from a string', () => {
+      // Act
+      const parts = Language.streamParts('hi');
+
+      // Assert
+      expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+      expect(parts.slice(1, -1)).toEqual([
+        { type: 'text-start', id: '0' },
+        { type: 'text-delta', id: '0', delta: 'hi' },
+        { type: 'text-end', id: '0' },
+      ]);
+      expect(parts.at(-1)).toMatchObject({ type: 'finish', finishReason: { unified: 'stop', raw: 'stop' } });
+    });
+
+    test('should coerce a unified finish reason onto the finish part', () => {
+      // Act
+      const parts = Language.streamParts([Language.text('a')], { finishReason: 'length' });
+
+      // Assert
+      expect(parts.at(-1)).toMatchObject({ type: 'finish', finishReason: { unified: 'length', raw: 'length' } });
+    });
+  });
 });

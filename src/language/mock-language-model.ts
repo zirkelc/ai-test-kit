@@ -10,7 +10,7 @@ import type {
 } from '@ai-sdk/provider';
 import { type Mock, vi } from 'vitest';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
-import { contentToStreamParts, Language } from './language.js';
+import { Language } from './language.js';
 import type { StreamDelayOptions } from '../streams.js';
 
 /** A (possibly partial) non-streaming result; only `content` is required, the rest defaults. */
@@ -140,9 +140,10 @@ const resolveStream = async (
       : resolveStreamResponse(response.doStream, options);
   }
   if ('content' in response) {
-    return Language.streamResult(contentToStreamParts(response.content, response.finishReason, response.usage), {
-      abortSignal,
-    });
+    return Language.streamResult(
+      Language.streamParts(response.content, { finishReason: response.finishReason, usage: response.usage }),
+      { abortSignal },
+    );
   }
   return notImplemented('doStream');
 };

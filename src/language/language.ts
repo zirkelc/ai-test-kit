@@ -51,11 +51,10 @@ export type ResultOptions = Omit<Partial<LanguageModelV3GenerateResult>, 'conten
   usage?: LanguageModelV3Usage;
 };
 
-// TODO rename usage()
 /** Builds a usage object from numeric totals, mirroring each into its primary sub-field. */
-function buildUsage(overrides?: UsageOverrides): LanguageModelV3Usage;
-function buildUsage(inputTotal: number, outputTotal?: number): LanguageModelV3Usage;
-function buildUsage(inputOrOverrides: number | UsageOverrides = {}, outputTotal = 0): LanguageModelV3Usage {
+function usage(overrides?: UsageOverrides): LanguageModelV3Usage;
+function usage(inputTotal: number, outputTotal?: number): LanguageModelV3Usage;
+function usage(inputOrOverrides: number | UsageOverrides = {}, outputTotal = 0): LanguageModelV3Usage {
   if (typeof inputOrOverrides === 'number') {
     return {
       inputTokens: { total: inputOrOverrides, noCache: inputOrOverrides, cacheRead: 0, cacheWrite: 0 },
@@ -165,9 +164,7 @@ const streamStart = (warnings: StreamStartWarnings = []): LanguageModelV3StreamP
  * The terminal `finish` part with usage and finish reason. The finish reason may be a unified string;
  * extra fields (e.g. `providerMetadata`) pass through onto the part.
  */
-const streamFinish = (
-  opts: FinishExtras & { finishReason?: FinishReasonInput; usage?: LanguageModelV3Usage } = {},
-): LanguageModelV3StreamPart => {
+const streamFinish = (opts: FinishOptions = {}): LanguageModelV3StreamPart => {
   const { finishReason, usage, ...rest } = opts;
   return {
     type: 'finish',
@@ -196,16 +193,25 @@ const partToStreamParts = (part: LanguageModelV3Content, id: string): Array<Lang
   return [part];
 };
 
-/** Derives the stream parts for some content: `stream-start` → one block per part → `finish`. */
-export const contentToStreamParts = (
-  content: Array<LanguageModelV3Content>,
-  finishReason?: FinishReasonInput,
-  usage?: LanguageModelV3Usage,
-): Array<LanguageModelV3StreamPart> => [
-  streamStart(),
-  ...content.flatMap((part, index) => partToStreamParts(part, String(index))),
-  streamFinish({ finishReason, usage }),
-];
+/** Options for a terminal `finish` part: finish reason, token usage, and any passthrough fields. */
+type FinishOptions = FinishExtras & { finishReason?: FinishReasonInput; usage?: LanguageModelV3Usage };
+
+/** Input to `streamParts`: a `string` (one text part) or explicit content. */
+type StreamPartsInput = string | Array<LanguageModelV3Content>;
+
+/**
+ * Builds the full stream-parts array for a response: `stream-start` → one block per content part → `finish`.
+ * A `string` becomes one text part. The array-returning sibling of `result`: splice it, snapshot it, feed it
+ * to a `doStream` mock, or wrap it with `streamResult`.
+ */
+const streamParts = (input: StreamPartsInput, opts: FinishOptions = {}): Array<LanguageModelV3StreamPart> => {
+  const content = typeof input === 'string' ? [text(input)] : input;
+  return [
+    streamStart(),
+    ...content.flatMap((part, index) => partToStreamParts(part, String(index))),
+    streamFinish(opts),
+  ];
+};
 
 /** Builds a full generate result from content (a string becomes one text part), filling defaults. */
 const result = (
@@ -231,7 +237,7 @@ export const streamResult = (
   opts: StreamDelayOptions = {},
 ): LanguageModelV3StreamResult => {
   if (input instanceof ReadableStream) return { stream: input };
-  const parts = typeof input === 'string' ? contentToStreamParts([text(input)]) : input;
+  const parts = typeof input === 'string' ? streamParts(input) : input;
   return { stream: simulateStream(parts, opts) };
 };
 
@@ -255,7 +261,8 @@ export const Language = {
   streamError,
   streamResponseMetadata,
   streamRaw,
-  usage: buildUsage,
+  usage,
   result,
+  streamParts,
   streamResult,
 };
