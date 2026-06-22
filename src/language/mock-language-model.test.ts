@@ -1,5 +1,5 @@
 import { generateText, streamText } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { Streams } from '../streams.js';
 import { Language } from './language.js';
 import { MockLanguageModel } from './mock-language-model.js';
@@ -171,6 +171,23 @@ describe('MockLanguageModel', () => {
 
       // Assert
       expect(text).toBe('piped');
+    });
+
+    test('should drain a bare-array doStream under fake timers without advancing them', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const model = MockLanguageModel.from({ doStream: [...Language.streamText('Hello'), Language.streamFinish()] });
+
+        // Act
+        const { stream } = await model.doStream(MockLanguageModel.callOptions());
+        const parts = await Streams.toArray(stream);
+
+        // Assert
+        expect(parts.length).toBe(4);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     test('should error with an AbortError when the call abortSignal fires mid-stream', async () => {

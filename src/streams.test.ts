@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { Language } from './language/language.js';
 import { Streams } from './streams.js';
 
@@ -66,6 +66,38 @@ describe('Streams', () => {
     // Assert
     expect(error).toBeInstanceOf(DOMException);
     expect((error as DOMException).name).toBe('AbortError');
+  });
+
+  test('simulate() should drain without a real timer under fake timers when no delay is set', async () => {
+    // Arrange
+    vi.useFakeTimers();
+    try {
+      const parts = Language.streamText('fast');
+
+      // Act
+      const drained = await Streams.toArray(Streams.simulate(parts));
+
+      // Assert
+      expect(drained).toEqual(parts);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('simulate() should treat an explicit 0 delay as no timer under fake timers', async () => {
+    // Arrange
+    vi.useFakeTimers();
+    try {
+      const parts = Language.streamText('fast');
+
+      // Act
+      const drained = await Streams.toArray(Streams.simulate(parts, { initialDelayInMs: 0, chunkDelayInMs: 0 }));
+
+      // Assert
+      expect(drained).toEqual(parts);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('simulate() should error the instant the signal fires mid-stream', async () => {

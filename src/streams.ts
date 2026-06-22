@@ -2,9 +2,9 @@ import { convertArrayToReadableStream, convertReadableStreamToArray } from '@ai-
 
 /** Simulated timing for a stream. Shared by `Streams.simulate`, `MockLanguageModel.streamResult`, and the `stream` chunks form. */
 export type StreamDelayOptions = {
-  /** Delay before the first chunk is emitted; `null` skips the delay. Defaults to `0`. */
+  /** Delay before the first chunk. `0` or `null` emit without a timer (safe under fake timers); a positive value waits. Defaults to no delay. */
   initialDelayInMs?: number | null;
-  /** Delay between each subsequent chunk; `null` skips the delay. Defaults to `0`. */
+  /** Delay between each subsequent chunk. `0` or `null` emit without a timer (safe under fake timers); a positive value waits. Defaults to no delay. */
   chunkDelayInMs?: number | null;
   /** When provided, the stream errors with an `AbortError` the instant the signal fires. */
   abortSignal?: AbortSignal;
@@ -13,10 +13,13 @@ export type StreamDelayOptions = {
 /** The error a real provider stream rejects with when its request is aborted. */
 const abortError = (): DOMException => new DOMException('The user aborted a request.', 'AbortError');
 
-/** Waits `ms` (`null` resolves at once), resolving early if the signal aborts so the caller can react immediately. */
+/**
+ * Waits `ms`, resolving early if the signal aborts so the caller can react immediately. A non-positive or
+ * `null` delay resolves at once without scheduling a timer, so it stays inert under `vi.useFakeTimers()`.
+ */
 const delay = (ms: number | null, signal: AbortSignal | undefined): Promise<void> =>
   new Promise((resolve) => {
-    if (ms == null) {
+    if (ms == null || ms <= 0) {
       resolve();
       return;
     }
@@ -32,12 +35,13 @@ const delay = (ms: number | null, signal: AbortSignal | undefined): Promise<void
   });
 
 /**
- * Builds a delayed `ReadableStream`, a port of the AI SDK's `simulateReadableStream` (delay before each
- * chunk, `null` to skip) extended with abort handling: when an `abortSignal` fires it errors with an
- * `AbortError` at once (even mid-delay), matching a real provider stream. Inert without a signal.
+ * Builds a `ReadableStream`, a port of the AI SDK's `simulateReadableStream` extended with abort handling:
+ * when an `abortSignal` fires it errors with an `AbortError` at once (even mid-delay), matching a real
+ * provider stream. By default there is no delay and no timer (so it is safe under fake timers); only a
+ * positive `initialDelayInMs` / `chunkDelayInMs` schedules a real `setTimeout`.
  */
 export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOptions = {}): ReadableStream<CHUNK> => {
-  const { abortSignal, initialDelayInMs = 0, chunkDelayInMs = 0 } = opts;
+  const { abortSignal, initialDelayInMs = null, chunkDelayInMs = null } = opts;
   let index = 0;
   return new ReadableStream<CHUNK>({
     async pull(controller) {

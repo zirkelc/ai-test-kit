@@ -1134,7 +1134,7 @@ Exported from the root `ai-test-kit`.
 
 #### `StreamDelayOptions`
 
-Simulated timing shared by `Streams.simulate`, `Language.streamResult`, and the `doStream` chunks form. With an `abortSignal`, the stream errors with an `AbortError` the instant the signal fires (mid-delay), matching a real provider stream.
+Simulated timing shared by `Streams.simulate`, `Language.streamResult`, and the `doStream` chunks form. With an `abortSignal`, the stream errors with an `AbortError` the instant the signal fires (mid-delay), matching a real provider stream. By default there is no delay and no timer, so a string / `{ content }` / bare-array `doStream` stays inert under `vi.useFakeTimers()` (only a positive `initialDelayInMs` / `chunkDelayInMs` schedules a real `setTimeout`); a bare array therefore drains like `Streams.from`.
 
 ```ts
 import type { StreamDelayOptions } from 'ai-test-kit';
