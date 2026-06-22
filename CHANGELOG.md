@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.1...v2.0.0-next.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **streams:** emit without a timer for non-positive delays ([2ff43a9](https://github.com/zirkelc/ai-test-kit/commit/2ff43a9ef8ca6e5690318653ecad4f51edca3ee6))
+
 ## [2.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next...v2.0.0-next.1) (2026-06-19)
 
 
