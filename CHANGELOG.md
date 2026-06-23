@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/zirkelc/ai-test-kit/compare/v1.4.0...v1.4.1) (2026-06-19)
+
+
+### Continuous Integration
+
+* publish prereleases under the next dist-tag ([7cbc2e1](https://github.com/zirkelc/ai-test-kit/commit/7cbc2e137319d14b35860fb545b06350367b8f0a))
+* scope push trigger to main and next ([dbd885c](https://github.com/zirkelc/ai-test-kit/commit/dbd885c3ea51baf9cbc0973f495f0870700655dd))
+
 ## [1.4.0](https://github.com/zirkelc/ai-test-kit/compare/v1.3.0...v1.4.0) (2026-06-18)
 
 
