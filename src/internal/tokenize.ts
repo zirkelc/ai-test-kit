@@ -1,5 +1,5 @@
 /** How to split a string into tokens for streaming. `separator` wins over `length`. */
-export type TokenizeStrategy = {
+type TokenizeStrategy = {
   /** Split into fixed-size slices of at most this many characters. */
   length?: number;
   /** Split on this delimiter, re-appending it to each token. */

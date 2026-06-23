@@ -1,25 +1,25 @@
 import { generateImage } from 'ai';
 import { describe, expect, test } from 'vitest';
-import { validBase64Image } from './image.js';
+import { base64Png1x1 } from './image.js';
 import { MockImageModel } from './mock-image-model.js';
 
 describe('MockImageModel', () => {
   describe('from', () => {
     test('should generate from a bare images array', async () => {
       // Arrange
-      const model = MockImageModel.from([validBase64Image]);
+      const model = MockImageModel.from([base64Png1x1]);
 
       // Act
       const result = await generateImage({ model, prompt: 'a cat' });
 
       // Assert
       expect(result.images.length).toBe(1);
-      expect(result.images[0]?.base64).toBe(validBase64Image);
+      expect(result.images[0]?.base64).toBe(base64Png1x1);
     });
 
     test('should default warnings for a bare images array', async () => {
       // Arrange
-      const model = MockImageModel.from([validBase64Image]);
+      const model = MockImageModel.from([base64Png1x1]);
 
       // Act
       const result = await generateImage({ model, prompt: 'a cat' });
@@ -42,7 +42,7 @@ describe('MockImageModel', () => {
     test('should resolve a function response from the call options', async () => {
       // Arrange
       const model = MockImageModel.from(async (options) => ({
-        images: [validBase64Image],
+        images: [base64Png1x1],
         warnings: [],
         response: { timestamp: new Date(0), modelId: String(options.n), headers: undefined },
       }));
@@ -51,7 +51,7 @@ describe('MockImageModel', () => {
       const result = await generateImage({ model, prompt: 'a cat' });
 
       // Assert
-      expect(result.images[0]?.base64).toBe(validBase64Image);
+      expect(result.images[0]?.base64).toBe(base64Png1x1);
     });
 
     test('should throw a clear error when no response is configured', async () => {
@@ -69,19 +69,19 @@ describe('MockImageModel', () => {
   describe('sequencing', () => {
     test('should advance through a sequence and clamp to the last', async () => {
       // Arrange
-      const model = MockImageModel.from([new Error('429'), [validBase64Image]]);
+      const model = MockImageModel.from([new Error('429'), [base64Png1x1]]);
 
       // Act + Assert
       await expect(generateImage({ model, prompt: 'a' })).rejects.toThrow();
-      expect((await generateImage({ model, prompt: 'b' })).images[0]?.base64).toBe(validBase64Image);
-      expect((await generateImage({ model, prompt: 'c' })).images[0]?.base64).toBe(validBase64Image);
+      expect((await generateImage({ model, prompt: 'b' })).images[0]?.base64).toBe(base64Png1x1);
+      expect((await generateImage({ model, prompt: 'c' })).images[0]?.base64).toBe(base64Png1x1);
     });
   });
 
   describe('spying', () => {
     test('should record calls on the spy and on the call history', async () => {
       // Arrange
-      const model = MockImageModel.from([validBase64Image]);
+      const model = MockImageModel.from([base64Png1x1]);
 
       // Act
       await generateImage({ model, prompt: 'a cat' });
@@ -106,7 +106,7 @@ describe('MockImageModel', () => {
 
     test('should honor identity and capability overrides', () => {
       // Arrange
-      const model = MockImageModel.from([validBase64Image], {
+      const model = MockImageModel.from([base64Png1x1], {
         provider: 'acme',
         modelId: 'acme-image',
         maxImagesPerCall: 4,

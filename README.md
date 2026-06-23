@@ -329,7 +329,7 @@ const { embedding } = await embed({ model, value: 'Hello' }); // second call rec
 
 ### Image Models
 
-Helpers from `ai-test-kit/image` to mock an `ImageModelV3`. `MockImageModel.from()` takes the generated images (base64 strings or binary data); `Image.png()` is a ready-made base64 1x1 PNG (also exported as `validBase64Image`).
+Helpers from `ai-test-kit/image` to mock an `ImageModelV3`. `MockImageModel.from()` takes the generated images (base64 strings or binary data); `Image.png()` is a ready-made base64 1x1 PNG (also exported as `base64Png1x1`).
 
 #### Mocking Image Generation
 
@@ -821,14 +821,15 @@ Builds a minimal valid `ImageModelV3CallOptions` with all required keys present 
 
 Builders for the values an image model returns.
 
-#### `.png()`
+#### `.png(size?)`
 
 ```ts
-Image.png(): string
+Image.png(size?: ImageSize): string
 // Image.png(): a valid base64 1x1 transparent PNG, handy as a stand-in generated image
+// Image.png('1x1'): the same, with the size given explicitly
 ```
 
-A 1x1 PNG regardless of arguments (sized output is not yet supported). The same string is also exported as the `validBase64Image` constant.
+A valid base64 1x1 transparent PNG. `size` only accepts `'1x1'` today (the `ImageSize` type reserves room for more). The same string is also exported as the `base64Png1x1` constant.
 
 #### `.usage(inputTokens?, outputTokens?)`
 

@@ -4,4 +4,4 @@ export {
   MockImageModel,
   type MockImageModelOptions,
 } from './mock-image-model.js';
-export { Image, validBase64Image } from './image.js';
+export { base64Png1x1, Image, type ImageSize } from './image.js';

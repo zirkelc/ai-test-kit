@@ -12,11 +12,17 @@ type ImageResultOverrides = Omit<Partial<ImageGenerateResult>, 'images' | 'respo
 };
 
 /** A valid base64-encoded 1x1 transparent PNG, handy as a stand-in generated image. */
-export const validBase64Image =
+export const base64Png1x1 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-/** A sample generated image. Currently the 1x1 PNG regardless of arguments (sized output is not yet supported). */
-const png = (): string => validBase64Image;
+/** The image sizes `png` can produce. Only `'1x1'` is supported today; the type reserves room for more. */
+export type ImageSize = '1x1';
+
+/** Sample PNGs keyed by size; only the 1x1 transparent pixel exists today. */
+const pngBySize: Record<ImageSize, string> = { '1x1': base64Png1x1 };
+
+/** A sample generated image as a base64 PNG. Only the `'1x1'` size is currently supported. */
+const png = (size: ImageSize = '1x1'): string => pngBySize[size];
 
 /** Builds an image usage object from token counts (`totalTokens` defaults to the sum). */
 const usage = (inputTokens = 0, outputTokens = 0): ImageModelV3Usage => ({

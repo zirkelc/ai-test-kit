@@ -1,4 +1,5 @@
 import { convertArrayToReadableStream, convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { Errors } from './errors.js';
 
 /** Simulated timing for a stream. Shared by `Streams.simulate`, `MockLanguageModel.streamResult`, and the `stream` chunks form. */
 export type StreamDelayOptions = {
@@ -9,9 +10,6 @@ export type StreamDelayOptions = {
   /** When provided, the stream errors with an `AbortError` the instant the signal fires. */
   abortSignal?: AbortSignal;
 };
-
-/** The error a real provider stream rejects with when its request is aborted. */
-const abortError = (): DOMException => new DOMException('The user aborted a request.', 'AbortError');
 
 /**
  * Waits `ms`, resolving early if the signal aborts so the caller can react immediately. A non-positive or
@@ -46,7 +44,7 @@ export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOpt
   return new ReadableStream<CHUNK>({
     async pull(controller) {
       if (abortSignal?.aborted) {
-        controller.error(abortError());
+        controller.error(Errors.abort());
         return;
       }
       if (index >= chunks.length) {
@@ -55,7 +53,7 @@ export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOpt
       }
       await delay(index === 0 ? initialDelayInMs : chunkDelayInMs, abortSignal);
       if (abortSignal?.aborted) {
-        controller.error(abortError());
+        controller.error(Errors.abort());
         return;
       }
       controller.enqueue(chunks[index]!);

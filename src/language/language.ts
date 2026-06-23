@@ -232,7 +232,7 @@ const result = (
  * Builds a full stream result. A `string` is assembled into `stream-start` → text → `finish`; a
  * `ReadableStream` is wrapped as-is (delays ignored); an array of parts is simulated with optional delays.
  */
-export const streamResult = (
+const streamResult = (
   input: string | Array<LanguageModelV3StreamPart> | ReadableStream<LanguageModelV3StreamPart>,
   opts: StreamDelayOptions = {},
 ): LanguageModelV3StreamResult => {
