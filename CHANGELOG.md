@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-next.3](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.2...v2.0.0-next.3) (2026-06-23)
+
+
+### Features
+
+* **language:** add streamParts builder ([fac3506](https://github.com/zirkelc/ai-test-kit/commit/fac35063800de513f6ebfe0a690097e19dd9a62c))
+
+
+### Code Refactoring
+
+* tidy image API and trim unnecessary exports ([e2068c6](https://github.com/zirkelc/ai-test-kit/commit/e2068c6b2c3825a3e49d1eac72e2cb35e79c0de0))
+
 ## [2.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.1...v2.0.0-next.2) (2026-06-22)
 
 
