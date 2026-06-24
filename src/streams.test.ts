@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'vitest';
-import { StreamParts } from './language/stream-parts.js';
+import { describe, expect, test, vi } from 'vitest';
+import { Language } from './language/language.js';
 import { Streams } from './streams.js';
 
 describe('Streams', () => {
   test('from() and toArray() should round-trip parts', async () => {
     // Arrange
-    const parts = StreamParts.text('round');
+    const parts = Language.streamText('round');
 
     // Act
     const roundTripped = await Streams.toArray(Streams.from(parts));
@@ -16,7 +16,7 @@ describe('Streams', () => {
 
   test('simulate() should drain to the provided chunks', async () => {
     // Arrange
-    const parts = StreamParts.text('sim');
+    const parts = Language.streamText('sim');
 
     // Act
     const drained = await Streams.toArray(Streams.simulate(parts));
@@ -58,7 +58,7 @@ describe('Streams', () => {
     // Arrange
     const controller = new AbortController();
     controller.abort();
-    const stream = Streams.simulate(StreamParts.text('nope'), { abortSignal: controller.signal });
+    const stream = Streams.simulate(Language.streamText('nope'), { abortSignal: controller.signal });
 
     // Act
     const error = await Streams.toArray(stream).catch((e: unknown) => e);
@@ -68,10 +68,42 @@ describe('Streams', () => {
     expect((error as DOMException).name).toBe('AbortError');
   });
 
+  test('simulate() should drain without a real timer under fake timers when no delay is set', async () => {
+    // Arrange
+    vi.useFakeTimers();
+    try {
+      const parts = Language.streamText('fast');
+
+      // Act
+      const drained = await Streams.toArray(Streams.simulate(parts));
+
+      // Assert
+      expect(drained).toEqual(parts);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('simulate() should treat an explicit 0 delay as no timer under fake timers', async () => {
+    // Arrange
+    vi.useFakeTimers();
+    try {
+      const parts = Language.streamText('fast');
+
+      // Act
+      const drained = await Streams.toArray(Streams.simulate(parts, { initialDelayInMs: 0, chunkDelayInMs: 0 }));
+
+      // Assert
+      expect(drained).toEqual(parts);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('simulate() should error the instant the signal fires mid-stream', async () => {
     // Arrange
     const controller = new AbortController();
-    const parts = [...StreamParts.text('Hello World'), StreamParts.finish()];
+    const parts = [...Language.streamText('Hello World'), Language.streamFinish()];
     const stream = Streams.simulate(parts, { chunkDelayInMs: 10, abortSignal: controller.signal });
     const reader = stream.getReader();
 

@@ -117,7 +117,6 @@ describe('MockEmbeddingModel', () => {
       expect(model.doEmbed.mock.calls.length).toBe(1);
       const input = model.doEmbed.mock.calls[0];
       expect(input).toEqual([callOptions]);
-      expect(model.doEmbedCalls[0]).toEqual(callOptions);
     });
   });
 
@@ -151,18 +150,14 @@ describe('MockEmbeddingModel', () => {
     });
   });
 
-  describe('builders', () => {
-    test('result should build a full result from vectors', () => {
+  describe('callOptions', () => {
+    test('should build valid options defaulting the values', () => {
       // Act
-      const built = MockEmbeddingModel.result([[0.1, 0.2]], { usage: { tokens: 3 } });
+      const options = MockEmbeddingModel.callOptions({ headers: { 'x-test': '1' } });
 
       // Assert
-      expect(built).toEqual({ embeddings: [[0.1, 0.2]], usage: { tokens: 3 }, warnings: [] });
-    });
-
-    test('usage should build an embedding usage object', () => {
-      // Assert
-      expect(MockEmbeddingModel.usage(9)).toEqual({ tokens: 9 });
+      expect(options.values).toEqual(['hello']);
+      expect(options.headers).toEqual({ 'x-test': '1' });
     });
   });
 });

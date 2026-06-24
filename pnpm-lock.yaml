@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@vitest/spy':
+        specifier: ^4.0.0
+        version: 4.0.18
     devDependencies:
       '@ai-sdk/provider':
         specifier: ^3.0.10

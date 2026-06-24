@@ -1,12 +1,12 @@
 import type { ImageModelV3, ImageModelV3CallOptions } from '@ai-sdk/provider';
-import { type Mock, vi } from 'vitest';
+import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
+import { type GeneratedImages, Image } from './image.js';
+
+export type { GeneratedImages };
 
 /** The result a `doGenerate` call resolves to, derived from the spec. */
 type ImageGenerateResult = Awaited<ReturnType<ImageModelV3['doGenerate']>>;
-
-/** The generated images: base64 strings or binary data, returned without conversion. */
-export type GeneratedImages = ImageGenerateResult['images'];
 
 /** A (possibly partial) generate result; only `images` is required, the rest defaults. */
 type ImageResultInput = Partial<ImageGenerateResult> & { images: GeneratedImages };
@@ -28,10 +28,6 @@ export type MockImageModelOptions = {
   maxImagesPerCall?: number;
 };
 
-/** A valid base64-encoded 1x1 transparent PNG, handy as a stand-in generated image. */
-export const validBase64Image =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-
 /** Throws a clear error when `doGenerate` is called but no matching response was configured. */
 const notImplemented = (): never => {
   throw new Error(`MockImageModel.doGenerate was called but no matching response was provided.`);
@@ -45,13 +41,6 @@ const notImplemented = (): never => {
 const isImagesArray = (value: unknown): value is GeneratedImages =>
   Array.isArray(value) && value.every((image) => typeof image === 'string' || image instanceof Uint8Array);
 
-/** Fills a partial generate result with default warnings and response metadata. */
-const buildImageResult = (input: ImageResultInput, modelId = 'mock-model'): ImageGenerateResult => ({
-  warnings: [],
-  ...input,
-  response: { timestamp: new Date(0), modelId, headers: undefined, ...input.response },
-});
-
 /** Resolves a single response into a generate result; `undefined` means no response was configured. */
 const resolveGenerate = async (
   response: ImageResponse | undefined,
@@ -61,8 +50,9 @@ const resolveGenerate = async (
   if (response === undefined) return notImplemented();
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
-  if (Array.isArray(response)) return buildImageResult({ images: response }, modelId);
-  return buildImageResult(response, modelId);
+  if (Array.isArray(response)) return Image.result(response, { response: { modelId } });
+  const { images, ...rest } = response;
+  return Image.result(images, { ...rest, response: { modelId, ...rest.response } });
 };
 
 /** Picks the response for the current call: a single response repeats, a sequence advances and clamps. */
@@ -77,8 +67,9 @@ const pickResponse = (
 };
 
 /**
- * An `ImageModelV3` mock whose `doGenerate` is a `vi.fn()` spy. Each call is also recorded on
- * `doGenerateCalls` so call arguments can be inspected without vitest. Created via {@link MockImageModel.from}.
+ * An `ImageModelV3` mock whose `doGenerate` is a spy function. Every call is recorded on
+ * `doGenerate.mock.calls` (the spy is vitest-compatible, so the full Vitest spy API and matchers work,
+ * but the call record can also be read without the Vitest runner). Created via {@link MockImageModel.from}.
  */
 class ImageModelMock implements ImageModelV3 {
   /** The image model spec version this mock implements. */
@@ -90,10 +81,8 @@ class ImageModelMock implements ImageModelV3 {
   /** The max images per call. */
   readonly maxImagesPerCall: number;
 
-  /** Spy implementing `doGenerate`, resolving the configured response. */
+  /** Spy implementing `doGenerate`, resolving the configured response. Call args live on `.mock.calls`. */
   doGenerate: Mock<ImageModelV3['doGenerate']>;
-  /** Call options captured for every `doGenerate` invocation, in order. */
-  doGenerateCalls: Array<ImageModelV3CallOptions> = [];
 
   /** Builds the spy and identity from the configured response(s) and options. */
   constructor(input?: ImageResponse | Array<ImageResponse>, options: MockImageModelOptions = {}) {
@@ -101,32 +90,40 @@ class ImageModelMock implements ImageModelV3 {
     this.modelId = options.modelId ?? nextModelId();
     this.maxImagesPerCall = options.maxImagesPerCall ?? 1;
 
-    this.doGenerate = vi.fn(async (callOptions: ImageModelV3CallOptions) => {
-      const response = pickResponse(input, this.doGenerateCalls.length);
-      this.doGenerateCalls.push(callOptions);
+    this.doGenerate = fn(async (callOptions: ImageModelV3CallOptions) => {
+      const response = pickResponse(input, this.doGenerate.mock.calls.length - 1);
       return resolveGenerate(response, callOptions, this.modelId);
     });
   }
 }
 
-/** Builds a full generate result from a set of images, overriding warnings/response as needed. */
-const result = (images: GeneratedImages, overrides: Omit<ImageResultInput, 'images'> = {}): ImageGenerateResult =>
-  buildImageResult({ images, ...overrides });
-
 /** Creates a mock `ImageModelV3` from a response spec (or sequence of them). */
 const from = (input?: ImageResponse | Array<ImageResponse>, options?: MockImageModelOptions): ImageModelMock =>
   new ImageModelMock(input, options);
 
+/** Builds a minimal valid `ImageModelV3CallOptions`, for invoking `doGenerate` directly. */
+const callOptions = (overrides: Partial<ImageModelV3CallOptions> = {}): ImageModelV3CallOptions => ({
+  prompt: 'A test image',
+  n: 1,
+  size: undefined,
+  aspectRatio: undefined,
+  seed: undefined,
+  files: undefined,
+  mask: undefined,
+  providerOptions: {},
+  ...overrides,
+});
+
 /**
- * Namespace for building mock image models. `from` creates a mock `ImageModelV3`; `result` assembles
- * a generate result and `image` is a ready-made base64 PNG. Exported as both a value (the namespace)
- * and a type (the model instance).
+ * Factory for mock image models. `from` creates a mock `ImageModelV3`; `callOptions` builds a valid options
+ * object for calling it directly. Build the values a model returns with {@link Image}. Exported as both a
+ * value (the factory) and a type (the model instance).
  *
  * @example
- * const model = MockImageModel.from([MockImageModel.image]);
- * const flaky = MockImageModel.from([new Error('rate limited'), [MockImageModel.image]]);
+ * const model = MockImageModel.from([Image.png()]);
+ * const flaky = MockImageModel.from([new Error('rate limited'), [Image.png()]]);
  */
-export const MockImageModel = { from, result, image: validBase64Image };
+export const MockImageModel = { from, callOptions };
 
 /** A mock image model instance, as returned by {@link MockImageModel.from}. */
 export type MockImageModel = ImageModelMock;

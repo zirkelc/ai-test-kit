@@ -1,5 +1,58 @@
 # Changelog
 
+## [2.0.0-next.4](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.3...v2.0.0-next.4) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* read recorded call options from model.doGenerate.mock .calls (each entry is the call's argument tuple, so [i][0]) instead of model.doGenerateCalls[i]. Same for doStream / doEmbed.
+
+### Code Refactoring
+
+* back spies with @vitest/spy, replace doXCalls with .mock.calls ([98eebef](https://github.com/zirkelc/ai-test-kit/commit/98eebefdac1dee47ca1142692b60834ed40a0d9c))
+
+## [2.0.0-next.3](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.2...v2.0.0-next.3) (2026-06-23)
+
+
+### Features
+
+* **language:** add streamParts builder ([fac3506](https://github.com/zirkelc/ai-test-kit/commit/fac35063800de513f6ebfe0a690097e19dd9a62c))
+
+
+### Code Refactoring
+
+* tidy image API and trim unnecessary exports ([e2068c6](https://github.com/zirkelc/ai-test-kit/commit/e2068c6b2c3825a3e49d1eac72e2cb35e79c0de0))
+
+## [2.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.1...v2.0.0-next.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **streams:** emit without a timer for non-positive delays ([2ff43a9](https://github.com/zirkelc/ai-test-kit/commit/2ff43a9ef8ca6e5690318653ecad4f51edca3ee6))
+
+## [2.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next...v2.0.0-next.1) (2026-06-19)
+
+
+### Continuous Integration
+
+* scope push trigger to main and next ([efd2b45](https://github.com/zirkelc/ai-test-kit/commit/efd2b45e35711df75e6fc4b7643f0956f0b36bfd))
+
+## [2.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v1.4.0...v2.0.0-next) (2026-06-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* ContentParts and StreamParts are removed; use the Language namespace (stream parts are stream-prefixed). The result, usage, and finishReason builders move off the mock namespaces onto Language / Embedding / Image. MockImageModel.image becomes Image.png().
+
+### Features
+
+* restructure model namespaces into Language/Embedding/Image ([f05ed88](https://github.com/zirkelc/ai-test-kit/commit/f05ed88da86ea68ff43c5b473a3e16993494527c))
+
+
+### Continuous Integration
+
+* add next prerelease release line ([18fb645](https://github.com/zirkelc/ai-test-kit/commit/18fb645fca7e8d2deec782475112a3264760d6fc))
+
 ## [1.4.1](https://github.com/zirkelc/ai-test-kit/compare/v1.4.0...v1.4.1) (2026-06-19)
 
 
