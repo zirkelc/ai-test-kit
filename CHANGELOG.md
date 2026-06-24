@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0-next.4](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.3...v2.0.0-next.4) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* read recorded call options from model.doGenerate.mock .calls (each entry is the call's argument tuple, so [i][0]) instead of model.doGenerateCalls[i]. Same for doStream / doEmbed.
+
+### Code Refactoring
+
+* back spies with @vitest/spy, replace doXCalls with .mock.calls ([98eebef](https://github.com/zirkelc/ai-test-kit/commit/98eebefdac1dee47ca1142692b60834ed40a0d9c))
+
 ## [2.0.0-next.3](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0-next.2...v2.0.0-next.3) (2026-06-23)
 
 
