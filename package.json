@@ -37,6 +37,9 @@
     "format:ci": "oxfmt --check",
     "prepare": "husky"
   },
+  "dependencies": {
+    "@vitest/spy": "^4.0.0"
+  },
   "devDependencies": {
     "@ai-sdk/provider": "^3.0.10",
     "@ai-sdk/provider-utils": "^4.0.27",
@@ -59,8 +62,7 @@
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@ai-sdk/provider-utils": "^4.0.0",
-    "ai": "5.x || 6.x",
-    "vitest": ">=3"
+    "ai": "5.x || 6.x"
   },
   "lint-staged": {
     "*.{js,ts,tsx,jsx}": [

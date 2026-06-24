@@ -22,7 +22,7 @@ The AI SDK ships `MockLanguageModelV3` and a few other test primitives, but they
 - **Generate content and stream parts**: assemble valid `text-start` → `text-delta` → `text-end` → `finish` streams by hand
 - **Keep tests deterministic**: pin message ids and timestamps so snapshots are stable
 
-This library ships those helpers, ready to use. Models are `vi.fn()` spies, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly.
+This library ships those helpers, ready to use. Models are vitest-compatible spy functions, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly (and the call record works under any test runner, or none).
 
 ### Installation
 
@@ -274,20 +274,19 @@ streamText({ model, prompt: 'x', ...Options.stream });
 
 #### Inspecting Calls
 
-`doGenerate` and `doStream` are `vi.fn()` spies, so the full Vitest API works. Each call is also recorded on `doGenerateCalls` / `doStreamCalls`, which you can read without Vitest.
+`doGenerate` and `doStream` are vitest-compatible spy functions (powered by [`@vitest/spy`](https://www.npmjs.com/package/@vitest/spy)), so the full Vitest spy API and matchers work. Every call is recorded on `doGenerate.mock.calls` / `doStream.mock.calls`, which you can read without the Vitest runner (so the kit works under any test runner, or none).
 
 ```typescript
 const model = MockLanguageModel.from('hi');
 
 await generateText({ model, prompt: 'question' });
 
-// Vitest spy
+// Vitest matchers
 expect(model.doGenerate).toHaveBeenCalledTimes(1);
-model.doGenerate.mock.calls[0][0].prompt;
 
-// Recorded call options
-model.doGenerateCalls.length; // 1
-model.doGenerateCalls[0].prompt;
+// Recorded call options (each entry is the call's argument tuple)
+model.doGenerate.mock.calls.length; // 1
+model.doGenerate.mock.calls[0][0].prompt;
 ```
 
 #### Custom Identity
@@ -558,7 +557,7 @@ Builders and the mock model from `ai-test-kit/language`.
 
 #### `MockLanguageModel`
 
-Factory for the mock model. The model returned by `.from()` exposes `doGenerate` / `doStream` as `vi.fn()` spies and records call options on `doGenerateCalls` / `doStreamCalls`. Build the values a model returns with [`Language`](#language). The namespace and the instance type share the name.
+Factory for the mock model. The model returned by `.from()` exposes `doGenerate` / `doStream` as vitest-compatible spy functions and records call options on `doGenerate.mock.calls` / `doStream.mock.calls`. Build the values a model returns with [`Language`](#language). The namespace and the instance type share the name.
 
 #### `.from(input?, options?)`
 
@@ -769,7 +768,7 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `EmbeddingModelV3` whose `doEmbed` is a `vi.fn()` spy. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbedCalls`.
+Creates a mock `EmbeddingModelV3` whose `doEmbed` is a vitest-compatible spy function. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbed.mock.calls`.
 
 #### `.callOptions(overrides?)`
 
@@ -811,7 +810,7 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `ImageModelV3` whose `doGenerate` is a `vi.fn()` spy. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerateCalls`.
+Creates a mock `ImageModelV3` whose `doGenerate` is a vitest-compatible spy function. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerate.mock.calls`.
 
 #### `.callOptions(overrides?)`
 

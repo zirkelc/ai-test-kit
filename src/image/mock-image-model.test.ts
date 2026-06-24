@@ -88,7 +88,7 @@ describe('MockImageModel', () => {
 
       // Assert
       expect(model.doGenerate.mock.calls.length).toBe(1);
-      expect(model.doGenerateCalls[0]?.prompt).toBe('a cat');
+      expect(model.doGenerate.mock.calls[0]?.[0].prompt).toBe('a cat');
     });
   });
 

@@ -8,7 +8,7 @@ import type {
   LanguageModelV3StreamResult,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
-import { type Mock, vi } from 'vitest';
+import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { Language } from './language.js';
 import type { StreamDelayOptions } from '../streams.js';
@@ -156,9 +156,10 @@ const pickResponse = (input: MockResponse | Array<MockResponse>, callIndex: numb
 };
 
 /**
- * A `LanguageModelV3` mock whose `doGenerate`/`doStream` are `vi.fn()` spies. Each call is also
- * recorded on `doGenerateCalls`/`doStreamCalls` so call arguments can be inspected without vitest.
- * Instances are created via the {@link MockLanguageModel} factory.
+ * A `LanguageModelV3` mock whose `doGenerate`/`doStream` are spy functions. Every call is recorded on
+ * `doGenerate.mock.calls` / `doStream.mock.calls` (the spies are vitest-compatible, so the full Vitest
+ * spy API and matchers work, but the call record can also be read without the Vitest runner). Instances
+ * are created via the {@link MockLanguageModel} factory.
  */
 class LanguageModelMock implements LanguageModelV3 {
   /** The language model spec version this mock implements. */
@@ -170,30 +171,23 @@ class LanguageModelMock implements LanguageModelV3 {
   /** The model id. */
   readonly modelId: string;
 
-  /** Spy implementing `doGenerate`, resolving the configured response. */
+  /** Spy implementing `doGenerate`, resolving the configured response. Call args live on `.mock.calls`. */
   doGenerate: Mock<LanguageModelV3['doGenerate']>;
-  /** Spy implementing `doStream`, resolving the configured response. */
+  /** Spy implementing `doStream`, resolving the configured response. Call args live on `.mock.calls`. */
   doStream: Mock<LanguageModelV3['doStream']>;
-
-  /** Call options captured for every `doGenerate` invocation, in order. */
-  doGenerateCalls: Array<LanguageModelV3CallOptions> = [];
-  /** Call options captured for every `doStream` invocation, in order. */
-  doStreamCalls: Array<LanguageModelV3CallOptions> = [];
 
   /** Builds the spies and identity from the configured response(s) and options. */
   constructor(input: MockResponse | Array<MockResponse> = {}, options: MockLanguageModelOptions = {}) {
     this.provider = options.provider ?? defaultProvider;
     this.modelId = options.modelId ?? nextModelId();
 
-    this.doGenerate = vi.fn(async (callOptions: LanguageModelV3CallOptions) => {
-      const response = pickResponse(input, this.doGenerateCalls.length);
-      this.doGenerateCalls.push(callOptions);
+    this.doGenerate = fn(async (callOptions: LanguageModelV3CallOptions) => {
+      const response = pickResponse(input, this.doGenerate.mock.calls.length - 1);
       return resolveGenerate(response, callOptions);
     });
 
-    this.doStream = vi.fn(async (callOptions: LanguageModelV3CallOptions) => {
-      const response = pickResponse(input, this.doStreamCalls.length);
-      this.doStreamCalls.push(callOptions);
+    this.doStream = fn(async (callOptions: LanguageModelV3CallOptions) => {
+      const response = pickResponse(input, this.doStream.mock.calls.length - 1);
       return resolveStream(response, callOptions);
     });
   }

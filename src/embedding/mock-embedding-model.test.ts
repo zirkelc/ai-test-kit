@@ -117,7 +117,6 @@ describe('MockEmbeddingModel', () => {
       expect(model.doEmbed.mock.calls.length).toBe(1);
       const input = model.doEmbed.mock.calls[0];
       expect(input).toEqual([callOptions]);
-      expect(model.doEmbedCalls[0]).toEqual(callOptions);
     });
   });
 

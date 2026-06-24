@@ -260,8 +260,8 @@ describe('MockLanguageModel', () => {
       await generateText({ model, prompt: 'question', ...Options.generate });
 
       // Assert
-      expect(model.doGenerateCalls.length).toBe(1);
-      expect(model.doGenerateCalls[0]!.prompt).toEqual([
+      expect(model.doGenerate.mock.calls.length).toBe(1);
+      expect(model.doGenerate.mock.calls[0]![0].prompt).toEqual([
         { role: 'user', content: [{ type: 'text', text: 'question' }] },
       ]);
     });

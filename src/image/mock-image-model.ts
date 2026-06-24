@@ -1,5 +1,5 @@
 import type { ImageModelV3, ImageModelV3CallOptions } from '@ai-sdk/provider';
-import { type Mock, vi } from 'vitest';
+import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { type GeneratedImages, Image } from './image.js';
 
@@ -67,8 +67,9 @@ const pickResponse = (
 };
 
 /**
- * An `ImageModelV3` mock whose `doGenerate` is a `vi.fn()` spy. Each call is also recorded on
- * `doGenerateCalls` so call arguments can be inspected without vitest. Created via {@link MockImageModel.from}.
+ * An `ImageModelV3` mock whose `doGenerate` is a spy function. Every call is recorded on
+ * `doGenerate.mock.calls` (the spy is vitest-compatible, so the full Vitest spy API and matchers work,
+ * but the call record can also be read without the Vitest runner). Created via {@link MockImageModel.from}.
  */
 class ImageModelMock implements ImageModelV3 {
   /** The image model spec version this mock implements. */
@@ -80,10 +81,8 @@ class ImageModelMock implements ImageModelV3 {
   /** The max images per call. */
   readonly maxImagesPerCall: number;
 
-  /** Spy implementing `doGenerate`, resolving the configured response. */
+  /** Spy implementing `doGenerate`, resolving the configured response. Call args live on `.mock.calls`. */
   doGenerate: Mock<ImageModelV3['doGenerate']>;
-  /** Call options captured for every `doGenerate` invocation, in order. */
-  doGenerateCalls: Array<ImageModelV3CallOptions> = [];
 
   /** Builds the spy and identity from the configured response(s) and options. */
   constructor(input?: ImageResponse | Array<ImageResponse>, options: MockImageModelOptions = {}) {
@@ -91,9 +90,8 @@ class ImageModelMock implements ImageModelV3 {
     this.modelId = options.modelId ?? nextModelId();
     this.maxImagesPerCall = options.maxImagesPerCall ?? 1;
 
-    this.doGenerate = vi.fn(async (callOptions: ImageModelV3CallOptions) => {
-      const response = pickResponse(input, this.doGenerateCalls.length);
-      this.doGenerateCalls.push(callOptions);
+    this.doGenerate = fn(async (callOptions: ImageModelV3CallOptions) => {
+      const response = pickResponse(input, this.doGenerate.mock.calls.length - 1);
       return resolveGenerate(response, callOptions, this.modelId);
     });
   }

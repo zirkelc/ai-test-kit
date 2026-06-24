@@ -1,5 +1,5 @@
 import type { EmbeddingModelV3, EmbeddingModelV3CallOptions, EmbeddingModelV3Result } from '@ai-sdk/provider';
-import { type Mock, vi } from 'vitest';
+import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { Embedding, type EmbeddingVector } from './embedding.js';
 
@@ -65,8 +65,9 @@ const pickResponse = (
 };
 
 /**
- * An `EmbeddingModelV3` mock whose `doEmbed` is a `vi.fn()` spy. Each call is also recorded on
- * `doEmbedCalls` so call arguments can be inspected without vitest. Created via {@link MockEmbeddingModel.from}.
+ * An `EmbeddingModelV3` mock whose `doEmbed` is a spy function. Every call is recorded on
+ * `doEmbed.mock.calls` (the spy is vitest-compatible, so the full Vitest spy API and matchers work, but
+ * the call record can also be read without the Vitest runner). Created via {@link MockEmbeddingModel.from}.
  */
 class EmbeddingModelMock implements EmbeddingModelV3 {
   /** The embedding model spec version this mock implements. */
@@ -80,10 +81,8 @@ class EmbeddingModelMock implements EmbeddingModelV3 {
   /** Whether the model supports parallel calls. */
   readonly supportsParallelCalls: boolean;
 
-  /** Spy implementing `doEmbed`, resolving the configured response. */
+  /** Spy implementing `doEmbed`, resolving the configured response. Call args live on `.mock.calls`. */
   doEmbed: Mock<EmbeddingModelV3['doEmbed']>;
-  /** Call options captured for every `doEmbed` invocation, in order. */
-  doEmbedCalls: Array<EmbeddingModelV3CallOptions> = [];
 
   /** Builds the spy and identity from the configured response(s) and options. */
   constructor(input?: EmbedResponse | Array<EmbedResponse>, options: MockEmbeddingModelOptions = {}) {
@@ -92,9 +91,8 @@ class EmbeddingModelMock implements EmbeddingModelV3 {
     this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall ?? 1;
     this.supportsParallelCalls = options.supportsParallelCalls ?? true;
 
-    this.doEmbed = vi.fn(async (callOptions: EmbeddingModelV3CallOptions) => {
-      const response = pickResponse(input, this.doEmbedCalls.length);
-      this.doEmbedCalls.push(callOptions);
+    this.doEmbed = fn(async (callOptions: EmbeddingModelV3CallOptions) => {
+      const response = pickResponse(input, this.doEmbed.mock.calls.length - 1);
       return resolveEmbed(response, callOptions);
     });
   }
