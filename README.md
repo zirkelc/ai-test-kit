@@ -30,7 +30,13 @@ This library ships those helpers, ready to use. Models are vitest-compatible spy
 npm install -D ai-test-kit
 ```
 
-`ai` is a peer dependency; this version targets **AI SDK 7** (provider spec `v4`). The spy engine ships with the kit via [`@vitest/spy`](https://www.npmjs.com/package/@vitest/spy), so Vitest itself is not required — the recorded call data works under any test runner, or none.
+> [!NOTE]
+> Version compatibility:
+>
+> - [`ai-test-kit@2`](https://github.com/zirkelc/ai-test-kit/tree/v2.0.0) — AI SDK v5 & v6 (provider spec `v3`)
+> - [`ai-test-kit@next`](https://github.com/zirkelc/ai-test-kit/tree/next) — AI SDK v7 (provider spec `v4`)
+
+`ai` is a peer dependency. The spy engine ships with the kit via [`@vitest/spy`](https://www.npmjs.com/package/@vitest/spy), so Vitest itself is not required — the recorded call data works under any test runner, or none.
 
 ## Usage
 
