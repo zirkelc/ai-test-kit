@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next...v3.0.0-next.1) (2026-06-25)
+
+
+### Features
+
+* add builders for v7 custom, reasoning-file, and tool-approval-response parts ([0412f1c](https://github.com/zirkelc/ai-test-kit/commit/0412f1c36e45707cb9a5d6cea0e67f2128e7d0ad))
+
 ## [3.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0...v3.0.0-next) (2026-06-25)
 
 
