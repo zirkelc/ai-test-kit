@@ -1,12 +1,12 @@
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
@@ -14,33 +14,33 @@ import { Language } from './language.js';
 import type { StreamDelayOptions } from '../streams.js';
 
 /** A (possibly partial) non-streaming result; only `content` is required, the rest defaults. */
-type GenerateResultInput = Omit<Partial<LanguageModelV3GenerateResult>, 'finishReason'> & {
-  content: Array<LanguageModelV3Content>;
+type GenerateResultInput = Omit<Partial<LanguageModelV4GenerateResult>, 'finishReason'> & {
+  content: Array<LanguageModelV4Content>;
   /** The finish reason, as a full object or a bare unified value (e.g. `'length'`). */
-  finishReason?: LanguageModelV3FinishReason | LanguageModelV3FinishReason['unified'];
+  finishReason?: LanguageModelV4FinishReason | LanguageModelV4FinishReason['unified'];
   /** Token usage; defaults to a small stable value. */
-  usage?: LanguageModelV3Usage;
+  usage?: LanguageModelV4Usage;
 };
 
 /**
  * How to respond to a `doGenerate` call. A function receives the call options and returns the generate
  * result directly — the escape hatch for input-dependent responses.
  */
-export type GenerateResponse = string | Error | GenerateResultInput | LanguageModelV3['doGenerate'];
+export type GenerateResponse = string | Error | GenerateResultInput | LanguageModelV4['doGenerate'];
 
 /**
  * How to respond to a `doStream` call. A bare array (or `ReadableStream`) streams without delay; the
  * `{ chunks, ... }` form adds delays and abort handling. A function receives the call options and
  * returns the stream result directly — the escape hatch for input-dependent streams or a fully custom
- * `LanguageModelV3StreamResult` (e.g. one carrying response metadata).
+ * `LanguageModelV4StreamResult` (e.g. one carrying response metadata).
  */
 export type StreamResponse =
   | string
   | Error
-  | Array<LanguageModelV3StreamPart>
-  | ReadableStream<LanguageModelV3StreamPart>
-  | ({ chunks: Array<LanguageModelV3StreamPart> } & StreamDelayOptions)
-  | LanguageModelV3['doStream'];
+  | Array<LanguageModelV4StreamPart>
+  | ReadableStream<LanguageModelV4StreamPart>
+  | ({ chunks: Array<LanguageModelV4StreamPart> } & StreamDelayOptions)
+  | LanguageModelV4['doStream'];
 
 /**
  * A single mock response. A `string` or `Error` applies to whichever method is called;
@@ -49,7 +49,7 @@ export type StreamResponse =
  * Note: `string` and `{ content }` describe the output for both methods — when streamed, a stream is
  * derived from the content. To sequence responses across calls, pass an `Array<MockResponse>` at the
  * top level. Because of that, a raw stream is expressed via the `doStream` form (`{ doStream: [...] }`),
- * never a bare array. The `doGenerate` / `doStream` keys mirror the `LanguageModelV3` method names.
+ * never a bare array. The `doGenerate` / `doStream` keys mirror the `LanguageModelV4` method names.
  */
 export type MockResponse =
   | string
@@ -80,8 +80,8 @@ const isExplicit = (response: MockResponse): response is { doGenerate?: Generate
 /** Resolves the `doGenerate` form of an explicit response into a generate result. */
 const resolveGenerateResponse = async (
   response: GenerateResponse,
-  options: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3GenerateResult> => {
+  options: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4GenerateResult> => {
   if (typeof response === 'string') return Language.result(response);
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
@@ -92,8 +92,8 @@ const resolveGenerateResponse = async (
 /** Resolves the `doStream` form of an explicit response into a stream result. */
 const resolveStreamResponse = async (
   response: StreamResponse,
-  options: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3StreamResult> => {
+  options: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4StreamResult> => {
   const { abortSignal } = options;
   if (typeof response === 'string') return Language.streamResult(response, { abortSignal });
   if (response instanceof Error) throw response;
@@ -110,8 +110,8 @@ const resolveStreamResponse = async (
 /** Resolves a top-level response for a `doGenerate` call. */
 const resolveGenerate = async (
   response: MockResponse,
-  options: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3GenerateResult> => {
+  options: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4GenerateResult> => {
   if (typeof response === 'string') return Language.result(response);
   if (response instanceof Error) throw response;
   if (isExplicit(response)) {
@@ -129,8 +129,8 @@ const resolveGenerate = async (
 /** Resolves a top-level response for a `doStream` call. */
 const resolveStream = async (
   response: MockResponse,
-  options: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3StreamResult> => {
+  options: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4StreamResult> => {
   const { abortSignal } = options;
   if (typeof response === 'string') return Language.streamResult(response, { abortSignal });
   if (response instanceof Error) throw response;
@@ -156,55 +156,55 @@ const pickResponse = (input: MockResponse | Array<MockResponse>, callIndex: numb
 };
 
 /**
- * A `LanguageModelV3` mock whose `doGenerate`/`doStream` are spy functions. Every call is recorded on
+ * A `LanguageModelV4` mock whose `doGenerate`/`doStream` are spy functions. Every call is recorded on
  * `doGenerate.mock.calls` / `doStream.mock.calls` (the spies are vitest-compatible, so the full Vitest
  * spy API and matchers work, but the call record can also be read without the Vitest runner). Instances
  * are created via the {@link MockLanguageModel} factory.
  */
-class LanguageModelMock implements LanguageModelV3 {
+class LanguageModelMock implements LanguageModelV4 {
   /** The language model spec version this mock implements. */
-  readonly specificationVersion = 'v3';
+  readonly specificationVersion = 'v4';
   /** URL patterns the model supports — none, for a mock. */
-  readonly supportedUrls: LanguageModelV3['supportedUrls'] = {};
+  readonly supportedUrls: LanguageModelV4['supportedUrls'] = {};
   /** The provider id. */
   readonly provider: string;
   /** The model id. */
   readonly modelId: string;
 
   /** Spy implementing `doGenerate`, resolving the configured response. Call args live on `.mock.calls`. */
-  doGenerate: Mock<LanguageModelV3['doGenerate']>;
+  doGenerate: Mock<LanguageModelV4['doGenerate']>;
   /** Spy implementing `doStream`, resolving the configured response. Call args live on `.mock.calls`. */
-  doStream: Mock<LanguageModelV3['doStream']>;
+  doStream: Mock<LanguageModelV4['doStream']>;
 
   /** Builds the spies and identity from the configured response(s) and options. */
   constructor(input: MockResponse | Array<MockResponse> = {}, options: MockLanguageModelOptions = {}) {
     this.provider = options.provider ?? defaultProvider;
     this.modelId = options.modelId ?? nextModelId();
 
-    this.doGenerate = fn(async (callOptions: LanguageModelV3CallOptions) => {
+    this.doGenerate = fn(async (callOptions: LanguageModelV4CallOptions) => {
       const response = pickResponse(input, this.doGenerate.mock.calls.length - 1);
       return resolveGenerate(response, callOptions);
     });
 
-    this.doStream = fn(async (callOptions: LanguageModelV3CallOptions) => {
+    this.doStream = fn(async (callOptions: LanguageModelV4CallOptions) => {
       const response = pickResponse(input, this.doStream.mock.calls.length - 1);
       return resolveStream(response, callOptions);
     });
   }
 }
 
-/** Creates a mock `LanguageModelV3` from a response spec (or sequence of them). */
+/** Creates a mock `LanguageModelV4` from a response spec (or sequence of them). */
 const from = (input?: MockResponse | Array<MockResponse>, options?: MockLanguageModelOptions): LanguageModelMock =>
   new LanguageModelMock(input, options);
 
-/** Builds a minimal valid `LanguageModelV3CallOptions`, for invoking `doGenerate` / `doStream` directly. */
-const callOptions = (overrides: Partial<LanguageModelV3CallOptions> = {}): LanguageModelV3CallOptions => ({
+/** Builds a minimal valid `LanguageModelV4CallOptions`, for invoking `doGenerate` / `doStream` directly. */
+const callOptions = (overrides: Partial<LanguageModelV4CallOptions> = {}): LanguageModelV4CallOptions => ({
   prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello!' }] }],
   ...overrides,
 });
 
 /**
- * Factory for mock language models. `from` creates a mock `LanguageModelV3`; `callOptions` builds a valid
+ * Factory for mock language models. `from` creates a mock `LanguageModelV4`; `callOptions` builds a valid
  * options object for calling its methods directly. Build the values a model returns with {@link Language}.
  * Exported as both a value (the factory) and a type (the model instance).
  *

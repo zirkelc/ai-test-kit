@@ -1,0 +1,5 @@
+# The AI SDK publishes frequently; exempt it from the global `minimumReleaseAge`
+# cooldown so freshly released versions install without waiting out the window.
+minimumReleaseAgeExclude:
+  - ai
+  - '@ai-sdk/*'

@@ -41,12 +41,12 @@
     "@vitest/spy": "^4.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "^3.0.10",
-    "@ai-sdk/provider-utils": "^4.0.27",
+    "@ai-sdk/provider": "^4.0.0",
+    "@ai-sdk/provider-utils": "^5.0.0",
     "@arethetypeswrong/cli": "^0.18.2",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/node": "^25.2.3",
-    "ai": "^6.0.197",
+    "ai": "^7.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "oxfmt": "^0.30.0",
@@ -60,9 +60,9 @@
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@ai-sdk/provider": "^3.0.0",
-    "@ai-sdk/provider-utils": "^4.0.0",
-    "ai": "5.x || 6.x"
+    "@ai-sdk/provider": "^4.0.0",
+    "@ai-sdk/provider-utils": "^5.0.0",
+    "ai": "^7.0.0"
   },
   "lint-staged": {
     "*.{js,ts,tsx,jsx}": [
@@ -72,6 +72,9 @@
     "*.{json,jsonc}": [
       "pnpm format"
     ]
+  },
+  "engines": {
+    "node": ">=22"
   },
   "packageManager": "pnpm@10.29.2"
 }

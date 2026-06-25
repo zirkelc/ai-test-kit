@@ -1,10 +1,10 @@
-import type { EmbeddingModelV3CallOptions } from '@ai-sdk/provider';
+import type { EmbeddingModelV4CallOptions } from '@ai-sdk/provider';
 import { embed, embedMany } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { MockEmbeddingModel } from './mock-embedding-model.js';
 
 /** Minimal call options for driving `doEmbed` directly. */
-const callOptions: EmbeddingModelV3CallOptions = { values: ['hi'] };
+const callOptions: EmbeddingModelV4CallOptions = { values: ['hi'] };
 
 describe('MockEmbeddingModel', () => {
   describe('from', () => {
