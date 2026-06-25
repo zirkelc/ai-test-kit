@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next.1...v3.0.0-next.2) (2026-06-25)
+
+
+### Features
+
+* **language:** add toolApprovalRequest content builder ([5641951](https://github.com/zirkelc/ai-test-kit/commit/5641951b9805ffd4cc2b57bcb4ab6ed84b1a3444))
+
+
+### Documentation
+
+* link version compatibility note to floating tags ([dd73222](https://github.com/zirkelc/ai-test-kit/commit/dd732220b44c03bc1b07abbc82c7b29a664a5f2b))
+
+
+### Continuous Integration
+
+* point a floating vX.x tag at each stable release ([efebbe0](https://github.com/zirkelc/ai-test-kit/commit/efebbe021318a7185facfc245d87c0048893ff4f))
+
 ## [3.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next...v3.0.0-next.1) (2026-06-25)
 
 
