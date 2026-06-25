@@ -32,6 +32,15 @@ describe('Language', () => {
       expect('isError' in part).toBe(false);
     });
 
+    test('toolApprovalRequest() should build a tool approval request part', () => {
+      // Assert
+      expect(Language.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' })).toEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'c1',
+      });
+    });
+
     test('source() should default sourceType to url and omit title when absent', () => {
       // Assert
       expect(Language.source({ id: 's1', url: 'https://x.test' })).toEqual({

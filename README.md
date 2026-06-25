@@ -624,6 +624,15 @@ Language.toolResult(args: { toolCallId: string; toolName: string; result: unknow
 // Language.toolResult({ toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }): { type: 'tool-result', toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }
 ```
 
+#### `.toolApprovalRequest(args)`
+
+A request for the user to approve a tool call before it runs.
+
+```ts
+Language.toolApprovalRequest(args: { approvalId: string; toolCallId: string; providerMetadata?: SharedV4ProviderMetadata }): LanguageModelV4ToolApprovalRequest
+// Language.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' }): { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' }
+```
+
 #### `.file(args)`
 
 ```ts

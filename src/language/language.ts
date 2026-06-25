@@ -10,6 +10,7 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   LanguageModelV4Text,
+  LanguageModelV4ToolApprovalRequest,
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResult,
   LanguageModelV4Usage,
@@ -95,6 +96,14 @@ const toolResult = (args: {
   toolName: args.toolName,
   result: args.result,
   ...(args.isError !== undefined ? { isError: args.isError } : {}),
+});
+
+/** A request for the user to approve a tool call before it runs. Valid in both content and streams. */
+const toolApprovalRequest = (
+  args: Omit<LanguageModelV4ToolApprovalRequest, 'type'>,
+): LanguageModelV4ToolApprovalRequest => ({
+  type: 'tool-approval-request',
+  ...args,
 });
 
 /** A file part. Valid in both content and streams. */
@@ -269,6 +278,7 @@ export const Language = {
   reasoning,
   toolCall,
   toolResult,
+  toolApprovalRequest,
   file,
   source,
   custom,
