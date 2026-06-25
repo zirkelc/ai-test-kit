@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.0-next.3](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next.2...v3.0.0-next.3) (2026-06-25)
+
+
+### Documentation
+
+* update version compatibility notes for ai-test-kit ([5906adb](https://github.com/zirkelc/ai-test-kit/commit/5906adb331d3c0a054ba330a69ad3884e32a052a))
+
 ## [3.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next.1...v3.0.0-next.2) (2026-06-25)
 
 
