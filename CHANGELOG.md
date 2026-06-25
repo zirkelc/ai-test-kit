@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0...v3.0.0-next) (2026-06-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* requires AI SDK 7 (provider spec v4); drops support for ai 5.x / 6.x (provider spec v3).
+
+### Features
+
+* target AI SDK 7 (provider spec v4) ([0e891c9](https://github.com/zirkelc/ai-test-kit/commit/0e891c9c55b4c44961316c80d7d06f01c7e748aa))
+
+
+### Documentation
+
+* add version compatibility note to installation ([69faf92](https://github.com/zirkelc/ai-test-kit/commit/69faf928adb2c83319794b1b232e4ba1acc05723))
+
 ## [2.0.0](https://github.com/zirkelc/ai-test-kit/compare/v1.4.1...v2.0.0) (2026-06-24)
 
 
