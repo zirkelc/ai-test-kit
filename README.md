@@ -5,7 +5,7 @@
   <img src="assets/logo-light.png" alt="ai-test-kit logo" width="400" />
 </picture>
 
-<p align="center">Test Kit for AI SDK: mock models, content builders and stream helpers, fully type-safe</p>
+<p align="center">Test kit for AI SDK apps: mock models, content builders and stream helpers, fully type-safe</p>
 <p align="center">
   <a href="https://www.npmjs.com/package/ai-test-kit" alt="ai-test-kit"><img src="https://img.shields.io/npm/dt/ai-test-kit?label=ai-test-kit"></a> <a href="https://github.com/zirkelc/ai-test-kit/actions/workflows/ci.yml" alt="CI"><img src="https://img.shields.io/github/actions/workflow/status/zirkelc/ai-test-kit/ci.yml?branch=main"></a>
 </p>
@@ -20,21 +20,21 @@ The AI SDK ships `MockLanguageModelV4` and a few other test primitives, but they
 
 - **Mock a model**: return text, throw an error, or replay a scripted response per call
 - **Generate content and stream parts**: assemble valid `text-start` → `text-delta` → `text-end` → `finish` streams by hand
-- **Keep tests deterministic**: pin message ids and timestamps so snapshots are stable
+- **Simulate and consume streams**: simulate streams with delays and drain them to assert on the chunks
 
-This library ships those helpers, ready to use. Models are vitest-compatible spy functions, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly (and the call record works under any test runner, or none).
+This library turns that boilerplate into one-liners, ready to use. Models are vitest-compatible spy functions, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly (and the call record works under any test runner, or none).
 
 ### Installation
-
-```bash
-npm install -D ai-test-kit
-```
 
 > [!NOTE]
 > Version compatibility:
 >
-> - [`ai-test-kit@2`](https://github.com/zirkelc/ai-test-kit/tree/v2.0.0) — AI SDK v5 & v6 (provider spec `v3`)
-> - [`ai-test-kit@next`](https://github.com/zirkelc/ai-test-kit/tree/next) — AI SDK v7 (provider spec `v4`)
+> - Use `ai-test-kit@2.x` for AI SDK v6 (provider spec `v3`)
+> - Use `ai-test-kit@next` for AI SDK v7 (provider spec `v4`)
+
+```bash
+npm install -D ai-test-kit
+```
 
 `ai` is a peer dependency. The spy engine ships with the kit via [`@vitest/spy`](https://www.npmjs.com/package/@vitest/spy), so Vitest itself is not required — the recorded call data works under any test runner, or none.
 
@@ -628,7 +628,7 @@ Language.toolResult(args: { toolCallId: string; toolName: string; result: unknow
 
 ```ts
 Language.file(args: { mediaType: string; data: string | Uint8Array }): LanguageModelV4File
-// Language.file({ mediaType: 'image/png', data: 'abc' }): { type: 'file', mediaType: 'image/png', data: 'abc' }
+// Language.file({ mediaType: 'image/png', data: 'abc' }): { type: 'file', mediaType: 'image/png', data: { type: 'data', data: 'abc' } }
 ```
 
 #### `.source(args)`
@@ -636,6 +636,24 @@ Language.file(args: { mediaType: string; data: string | Uint8Array }): LanguageM
 ```ts
 Language.source(args: { id: string; url: string; title?: string }): LanguageModelV4Source
 // Language.source({ id: 's1', url: 'https://example.com' }): { type: 'source', sourceType: 'url', id: 's1', url: 'https://example.com' }
+```
+
+#### `.reasoningFile(args)`
+
+A file generated during reasoning. New in AI SDK 7.
+
+```ts
+Language.reasoningFile(args: { mediaType: string; data: string | Uint8Array }): LanguageModelV4ReasoningFile
+// Language.reasoningFile({ mediaType: 'image/png', data: 'abc' }): { type: 'reasoning-file', mediaType: 'image/png', data: { type: 'data', data: 'abc' } }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom content; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+Language.custom(args: { kind: `${string}.${string}`; providerMetadata?: SharedV4ProviderMetadata }): LanguageModelV4CustomContent
+// Language.custom({ kind: 'acme.thinking' }): { type: 'custom', kind: 'acme.thinking' }
 ```
 
 ##### Stream parts
@@ -893,6 +911,24 @@ UIParts.file(args: { mediaType: string; filename?: string; url: string; provider
 // UIParts.file({ mediaType: 'image/png', url: 'https://example.com/a.png' }): { type: 'file', mediaType: 'image/png', url: 'https://example.com/a.png' }
 ```
 
+#### `.reasoningFile(args)`
+
+A file generated during reasoning, referenced by URL. New in AI SDK 7.
+
+```ts
+UIParts.reasoningFile(args: { mediaType: string; url: string; providerMetadata?: ProviderMetadata }): ReasoningFileUIPart
+// UIParts.reasoningFile({ mediaType: 'image/png', url: 'https://example.com/r.png' }): { type: 'reasoning-file', mediaType: 'image/png', url: 'https://example.com/r.png' }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom part; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+UIParts.custom(args: { kind: `${string}.${string}`; providerMetadata?: ProviderMetadata }): CustomContentUIPart
+// UIParts.custom({ kind: 'acme.box' }): { type: 'custom', kind: 'acme.box' }
+```
+
 #### `.stepStart()`
 
 ```ts
@@ -1009,6 +1045,15 @@ UIChunks.toolApprovalRequest(args: { approvalId: string; toolCallId: string }): 
 // UIChunks.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' }): { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' }
 ```
 
+#### `.toolApprovalResponse(args)`
+
+Grants or denies a tool approval request. New in AI SDK 7.
+
+```ts
+UIChunks.toolApprovalResponse(args: { approvalId: string; approved: boolean; reason?: string; providerExecuted?: boolean }): UIMessageChunk
+// UIChunks.toolApprovalResponse({ approvalId: 'a1', approved: true }): { type: 'tool-approval-response', approvalId: 'a1', approved: true }
+```
+
 #### `.toolOutputAvailable(args)`
 
 ```ts
@@ -1049,6 +1094,24 @@ UIChunks.sourceDocument(args: { sourceId: string; mediaType: string; title: stri
 ```ts
 UIChunks.file(args: { url: string; mediaType: string }): UIMessageChunk
 // UIChunks.file({ url: 'https://example.com/a.png', mediaType: 'image/png' }): { type: 'file', url: 'https://example.com/a.png', mediaType: 'image/png' }
+```
+
+#### `.reasoningFile(args)`
+
+A file generated during reasoning, referenced by URL. New in AI SDK 7.
+
+```ts
+UIChunks.reasoningFile(args: { url: string; mediaType: string; providerMetadata?: ProviderMetadata }): UIMessageChunk
+// UIChunks.reasoningFile({ url: 'https://example.com/r.png', mediaType: 'image/png' }): { type: 'reasoning-file', url: 'https://example.com/r.png', mediaType: 'image/png' }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom content; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+UIChunks.custom(args: { kind: `${string}.${string}`; providerMetadata?: ProviderMetadata }): UIMessageChunk
+// UIChunks.custom({ kind: 'acme.box' }): { type: 'custom', kind: 'acme.box' }
 ```
 
 #### `.data(name, data, options?)`

@@ -1,9 +1,11 @@
 import type {
   LanguageModelV4Content,
+  LanguageModelV4CustomContent,
   LanguageModelV4File,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
   LanguageModelV4Reasoning,
+  LanguageModelV4ReasoningFile,
   LanguageModelV4Source,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
@@ -109,6 +111,22 @@ const source = (args: { id: string; url: string; title?: string }): LanguageMode
   id: args.id,
   url: args.url,
   ...(args.title !== undefined ? { title: args.title } : {}),
+});
+
+/**
+ * A provider-specific custom content part. `kind` is `{provider}.{type}`. Valid in both content and
+ * streams. New in AI SDK 7.
+ */
+const custom = (args: Omit<LanguageModelV4CustomContent, 'type'>): LanguageModelV4CustomContent => ({
+  type: 'custom',
+  ...args,
+});
+
+/** A file generated as part of reasoning. Valid in both content and streams. New in AI SDK 7. */
+const reasoningFile = (args: { mediaType: string; data: string | Uint8Array }): LanguageModelV4ReasoningFile => ({
+  type: 'reasoning-file',
+  mediaType: args.mediaType,
+  data: { type: 'data', data: args.data },
 });
 
 /** Maps a `string` (tokenized) or `string[]` (verbatim) to the deltas of a streamed block. */
@@ -253,6 +271,8 @@ export const Language = {
   toolResult,
   file,
   source,
+  custom,
+  reasoningFile,
   streamText,
   streamReasoning,
   streamToolInput,

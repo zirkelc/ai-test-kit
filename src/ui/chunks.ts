@@ -79,6 +79,12 @@ export const createUIChunks = <METADATA = unknown, DATA extends UIDataTypes = UI
   ): ChunkOf<METADATA, DATA, 'tool-approval-request'> =>
     ({ type: 'tool-approval-request', ...args }) as ChunkOf<METADATA, DATA, 'tool-approval-request'>,
 
+  /** A `tool-approval-response` chunk granting or denying a tool approval request. New in AI SDK 7. */
+  toolApprovalResponse: (
+    args: ChunkArgs<METADATA, DATA, 'tool-approval-response'>,
+  ): ChunkOf<METADATA, DATA, 'tool-approval-response'> =>
+    ({ type: 'tool-approval-response', ...args }) as ChunkOf<METADATA, DATA, 'tool-approval-response'>,
+
   /** A `tool-output-available` chunk carrying a tool result. */
   toolOutputAvailable: (
     args: ChunkArgs<METADATA, DATA, 'tool-output-available'>,
@@ -108,6 +114,14 @@ export const createUIChunks = <METADATA = unknown, DATA extends UIDataTypes = UI
   /** A `file` chunk referencing a file by URL. */
   file: (args: ChunkArgs<METADATA, DATA, 'file'>): ChunkOf<METADATA, DATA, 'file'> =>
     ({ type: 'file', ...args }) as ChunkOf<METADATA, DATA, 'file'>,
+
+  /** A `reasoning-file` chunk carrying a file generated during reasoning. New in AI SDK 7. */
+  reasoningFile: (args: ChunkArgs<METADATA, DATA, 'reasoning-file'>): ChunkOf<METADATA, DATA, 'reasoning-file'> =>
+    ({ type: 'reasoning-file', ...args }) as ChunkOf<METADATA, DATA, 'reasoning-file'>,
+
+  /** A `custom` chunk carrying provider-specific content (`kind` in the format `{provider}.{type}`). New in AI SDK 7. */
+  custom: (args: ChunkArgs<METADATA, DATA, 'custom'>): ChunkOf<METADATA, DATA, 'custom'> =>
+    ({ type: 'custom', ...args }) as ChunkOf<METADATA, DATA, 'custom'>,
 
   /** A `data-${name}` chunk carrying a typed custom data payload. */
   data: <NAME extends keyof DATA & string>(

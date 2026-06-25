@@ -41,6 +41,23 @@ describe('Language', () => {
         url: 'https://x.test',
       });
     });
+
+    test('custom() should build a provider-specific custom part', () => {
+      // Assert
+      expect(Language.custom({ kind: 'acme.thinking' })).toEqual({
+        type: 'custom',
+        kind: 'acme.thinking',
+      });
+    });
+
+    test('reasoningFile() should wrap data in the discriminated union', () => {
+      // Assert
+      expect(Language.reasoningFile({ mediaType: 'image/png', data: 'abc' })).toEqual({
+        type: 'reasoning-file',
+        mediaType: 'image/png',
+        data: { type: 'data', data: 'abc' },
+      });
+    });
   });
 
   describe('stream parts', () => {
@@ -199,6 +216,17 @@ describe('Language', () => {
 
       // Assert
       expect(parts.at(-1)).toMatchObject({ type: 'finish', finishReason: { unified: 'length', raw: 'length' } });
+    });
+
+    test('should pass a non-text content part through as a single stream part', () => {
+      // Arrange
+      const customPart = Language.custom({ kind: 'acme.thinking' });
+
+      // Act
+      const parts = Language.streamParts([customPart]);
+
+      // Assert
+      expect(parts.slice(1, -1)).toEqual([customPart]);
     });
   });
 });
