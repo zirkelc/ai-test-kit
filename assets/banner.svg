@@ -8,37 +8,47 @@
       <stop offset="0" stop-color="#f472b6"/>
       <stop offset="1" stop-color="#d946ef"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.36" r="0.6">
+    <radialGradient id="glow" cx="0.5" cy="0.34" r="0.62">
       <stop offset="0" stop-color="#241a2e"/>
-      <stop offset="1" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#0b0e14"/>
     </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d946ef" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#d946ef" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d946ef" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#f472b6" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#d946ef" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
-  <!-- background -->
-  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect width="1280" height="640" fill="#0b0e14"/>
   <rect width="1280" height="640" fill="url(#glow)"/>
 
-  <!-- ===== [ ✓✓✓ ] motif (scaled) ===== -->
-  <g transform="translate(208,93) scale(1.2)">
-    <!-- brackets -->
+  <!-- ===== [ checks ] motif (scaled) ===== -->
+  <g transform="translate(208,86) scale(1.22)">
     <path d="M188 40 L150 40 L150 180 L188 180"
           fill="none" stroke="url(#acc)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M532 40 L570 40 L570 180 L532 180"
           fill="none" stroke="url(#acc)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
 
-    <!-- three checkmarks, grey -> pink -->
     <path d="M224 110 L244 130 L278 88" fill="none" stroke="#6b7482" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M334 110 L354 130 L388 88" fill="none" stroke="#ec88c4" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="470" cy="108" r="56" fill="url(#halo)"/>
     <path d="M444 110 L464 130 L498 88" fill="none" stroke="url(#acc)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
   <!-- ===== WORDMARK ===== -->
-  <text x="640" y="430" text-anchor="middle"
-        font-family="'JetBrains Mono', monospace" font-weight="700" font-size="76"
-        letter-spacing="-2" fill="#e6eaf0">ai-<tspan fill="url(#accText)">test</tspan>-kit</text>
+  <text x="640" y="432" text-anchor="middle"
+        font-family="'JetBrains Mono', monospace" font-weight="700" font-size="78"
+        letter-spacing="-2" fill="#e9edf3">ai-<tspan fill="url(#accText)">test</tspan>-kit</text>
+
+  <!-- accent rule -->
+  <rect x="500" y="462" width="280" height="3" rx="1.5" fill="url(#rule)"/>
 
   <!-- ===== TAGLINE ===== -->
-  <text x="640" y="491" text-anchor="middle"
+  <text x="640" y="510" text-anchor="middle"
         font-family="'JetBrains Mono', monospace" font-weight="400" font-size="24"
-        letter-spacing="0" fill="#9aa4b2">Mock models, content builders and stream helpers for the AI SDK</text>
+        letter-spacing="0.5" fill="#9aa4b2">Mock models, content builders and stream helpers for the AI SDK</text>
 </svg>
