@@ -167,7 +167,7 @@ Language.toolCall<typeof tools>({ toolCallId: 'c1', toolName: 'weather', input: 
 
 #### Usage and Finish Reason
 
-By default a mock reports a `stop` finish reason and a small fixed token usage. Override them via the `{ content, finishReason, usage }` form to test code that branches on the finish reason or tracks token usage. `finishReason` accepts a bare unified string (`'length'`) or a full object; `Language.usage(...)` builds the token usage.
+By default a mock reports a `stop` finish reason and a small fixed token usage. When you don't set a finish reason, it is derived from the content: a pending client tool call yields `tool-calls`, matching how a real provider reports it (a provider-executed call, or one whose result is already in the content, keeps `stop`). Override it via the `{ content, finishReason, usage }` form to test code that branches on the finish reason or tracks token usage. `finishReason` accepts a bare unified string (`'length'`) or a full object; an explicit value always wins over derivation; `Language.usage(...)` builds the token usage.
 
 ```typescript
 import { Language, MockLanguageModel } from 'ai-test-kit/language';
@@ -726,11 +726,12 @@ Language.usage(inputTotal: number, outputTotal: number): LanguageModelV3Usage
 Language.result(input: string | LanguageModelV3Content[], options?: ResultOptions): LanguageModelV3GenerateResult
 // Language.result('hi'): { content: [{ type: 'text', text: 'hi' }], finishReason: { unified: 'stop', raw: 'stop' }, usage, warnings: [] }
 // Language.result([Language.text('hi')], { finishReason: 'length', usage: Language.usage(5, 8) }): finishReason coerced from a unified string; extra fields pass through
+// When finishReason is omitted it is derived from content: a pending client tool call yields 'tool-calls', otherwise 'stop'.
 ```
 
 #### `.streamParts(input, options?)`
 
-The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
+The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. Like `result`, an omitted `finishReason` is derived from content (a pending client tool call yields `tool-calls`); note the standalone `streamFinish` atom is content-blind and always defaults to `stop`. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
 
 ```ts
 Language.streamParts(input: string | LanguageModelV3Content[], options?): LanguageModelV3StreamPart[]

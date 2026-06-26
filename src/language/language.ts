@@ -13,7 +13,7 @@ import type {
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import type { InferToolInput, InferToolOutput, ToolSet } from 'ai';
-import { defaultFinishReason, defaultUsage, toFinishReason } from '../internal/defaults.js';
+import { defaultFinishReason, defaultUsage, finishReasonFromContent, toFinishReason } from '../internal/defaults.js';
 import { toJSONString } from '../internal/json.js';
 import { tokenize } from '../internal/tokenize.js';
 import { simulateStream, type StreamDelayOptions } from '../streams.js';
@@ -246,7 +246,7 @@ const streamParts = (input: StreamPartsInput, opts: FinishOptions = {}): Array<L
   return [
     streamStart(),
     ...content.flatMap((part, index) => partToStreamParts(part, String(index))),
-    streamFinish(opts),
+    streamFinish({ ...opts, finishReason: opts.finishReason ?? finishReasonFromContent(content) }),
   ];
 };
 
@@ -256,9 +256,10 @@ const result = (
   opts: ResultOptions = {},
 ): LanguageModelV3GenerateResult => {
   const { finishReason, usage, warnings, ...rest } = opts;
+  const content = typeof input === 'string' ? [text(input)] : input;
   return {
-    content: typeof input === 'string' ? [text(input)] : input,
-    finishReason: finishReason === undefined ? defaultFinishReason : toFinishReason(finishReason),
+    content,
+    finishReason: finishReason === undefined ? finishReasonFromContent(content) : toFinishReason(finishReason),
     usage: usage ?? defaultUsage,
     warnings: warnings ?? [],
     ...rest,

@@ -151,6 +151,52 @@ describe('Language', () => {
       expect(result.finishReason).toEqual({ unified: 'length', raw: 'length' });
       expect(result.providerMetadata).toEqual({ a: { b: 1 } });
     });
+
+    test('should derive a tool-calls finish reason from a client-executed tool call', () => {
+      // Act
+      const result = Language.result([Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: {} })]);
+
+      // Assert
+      expect(result.finishReason).toEqual({ unified: 'tool-calls', raw: 'tool-calls' });
+    });
+
+    test('should keep the stop finish reason for a provider-executed tool call', () => {
+      // Arrange
+      const part = {
+        ...Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: {} }),
+        providerExecuted: true,
+      };
+
+      // Act
+      const result = Language.result([part]);
+
+      // Assert
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
+    });
+
+    test('should keep the stop finish reason when a result resolves the tool call inline', () => {
+      // Arrange
+      const content = [
+        Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: {} }),
+        Language.toolResult({ toolCallId: 'c1', toolName: 'weather', result: { tempC: 20 } }),
+      ];
+
+      // Act
+      const result = Language.result(content);
+
+      // Assert
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
+    });
+
+    test('should let an explicit finish reason win over derivation', () => {
+      // Act
+      const result = Language.result([Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: {} })], {
+        finishReason: 'stop',
+      });
+
+      // Assert
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' });
+    });
   });
 
   describe('streamResult', () => {
@@ -199,6 +245,17 @@ describe('Language', () => {
 
       // Assert
       expect(parts.at(-1)).toMatchObject({ type: 'finish', finishReason: { unified: 'length', raw: 'length' } });
+    });
+
+    test('should derive a tool-calls finish reason from a client-executed tool call', () => {
+      // Act
+      const parts = Language.streamParts([Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: {} })]);
+
+      // Assert
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      });
     });
   });
 });
