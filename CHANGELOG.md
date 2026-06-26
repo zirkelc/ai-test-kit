@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0...v2.0.1) (2026-06-26)
+
+
+### Miscellaneous Chores
+
+* add FUNDING.yml sponsor button ([aab6c10](https://github.com/zirkelc/ai-test-kit/commit/aab6c108060c8ca23cec153c6333ce55e9bca0d2))
+
 ## [2.0.0](https://github.com/zirkelc/ai-test-kit/compare/v1.4.1...v2.0.0) (2026-06-24)
 
 
