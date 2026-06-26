@@ -1,6 +1,6 @@
 {
   "name": "ai-test-kit",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Test utilities for the AI SDK: mock models, content and stream-part builders, fully type-safe",
   "keywords": [],
   "license": "MIT",
