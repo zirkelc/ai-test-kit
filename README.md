@@ -5,7 +5,7 @@
   <img src="assets/logo-light.png" alt="ai-test-kit logo" width="400" />
 </picture>
 
-<p align="center">Test Kit for AI SDK: mock models, content builders and stream helpers, fully type-safe</p>
+<p align="center">Test kit for AI SDK apps: mock models, content builders and stream helpers, fully type-safe</p>
 <p align="center">
   <a href="https://www.npmjs.com/package/ai-test-kit" alt="ai-test-kit"><img src="https://img.shields.io/npm/dt/ai-test-kit?label=ai-test-kit"></a> <a href="https://github.com/zirkelc/ai-test-kit/actions/workflows/ci.yml" alt="CI"><img src="https://img.shields.io/github/actions/workflow/status/zirkelc/ai-test-kit/ci.yml?branch=main"></a>
 </p>
@@ -16,30 +16,37 @@ This library provides a simple, type-safe API for testing AI SDK-powered apps. I
 
 ### Why?
 
-The AI SDK ships `MockLanguageModelV3` and a few other test primitives, but they are deliberately low-level. In practice every project ends up rebuilding the same helpers to:
+The AI SDK ships `MockLanguageModelV4` and a few other test primitives, but they are deliberately low-level. In practice every project ends up rebuilding the same helpers to:
 
 - **Mock a model**: return text, throw an error, or replay a scripted response per call
 - **Generate content and stream parts**: assemble valid `text-start` → `text-delta` → `text-end` → `finish` streams by hand
-- **Keep tests deterministic**: pin message ids and timestamps so snapshots are stable
+- **Simulate and consume streams**: simulate streams with delays and drain them to assert on the chunks
 
-This library ships those helpers, ready to use. Models are vitest-compatible spy functions, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly (and the call record works under any test runner, or none).
+This library turns that boilerplate into one-liners, ready to use. Models are vitest-compatible spy functions, so you can assert on calls with the full Vitest API while also reading the recorded call arguments directly (and the call record works under any test runner, or none).
 
 ### Installation
 
+> [!NOTE]
+> Version compatibility:
+>
+> - Use [`ai-test-kit@2.x`](https://github.com/zirkelc/ai-test-kit/tree/v2.x) for AI SDK v6 (provider spec `v3`)
+> - Use [`ai-test-kit@3.x`](https://github.com/zirkelc/ai-test-kit/tree/next) for AI SDK v7 (provider spec `v4`)
+
 ```bash
-npm install -D ai-test-kit
+npm install -D ai-test-kit@2 # for AI SDK v6
+npm install -D ai-test-kit@3 # for AI SDK v7
 ```
 
-`ai` and `vitest` are peer dependencies.
+`ai` is a peer dependency. The spy engine ships with the kit via [`@vitest/spy`](https://www.npmjs.com/package/@vitest/spy), so Vitest itself is not required — the recorded call data works under any test runner, or none.
 
 ## Usage
 
 The API is split by layer, each under its own entry point so an import only pulls in the types it needs:
 
 - `ai-test-kit` — generic, layer-agnostic helpers: build, drain, and convert `ReadableStream`s and `AsyncIterable`s with `Streams` and `Iterables`
-- `ai-test-kit/language` — the model layer: mock a `LanguageModelV3` and build the values it returns with the `Language` namespace, both content for [`generateText()`](https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text) and `stream`-prefixed parts for [`streamText()`](https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text)
-- `ai-test-kit/embedding` — the embedding layer: mock an `EmbeddingModelV3` and build vectors and results with the `Embedding` namespace
-- `ai-test-kit/image` — the image layer: mock an `ImageModelV3` and build sample images and results with the `Image` namespace
+- `ai-test-kit/language` — the model layer: mock a `LanguageModelV4` and build the values it returns with the `Language` namespace, both content for [`generateText()`](https://ai-sdk.dev/docs/reference/ai-sdk-core/generate-text) and `stream`-prefixed parts for [`streamText()`](https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text)
+- `ai-test-kit/embedding` — the embedding layer: mock an `EmbeddingModelV4` and build vectors and results with the `Embedding` namespace
+- `ai-test-kit/image` — the image layer: mock an `ImageModelV4` and build sample images and results with the `Image` namespace
 - `ai-test-kit/ui` — the UI layer: build `UIMessagePart`, `UIMessageChunk`, and `UIMessage` fixtures, optionally typed to your own `UIMessage`
 
 ### Streams and Iterables
@@ -78,7 +85,7 @@ text; // 'Recovered'
 Helpers from `ai-test-kit/language` to mock a model and build the content and stream parts it returns.
 
 > [!NOTE]
-> This kit mocks at the `LanguageModelV3` interface — the boundary between the AI SDK and a provider. It does not mock the HTTP/wire layer, so provider-specific wire behavior (e.g. an error inside a 200-OK SSE body) is out of scope. For that, drive a real provider against a fake server with [`@ai-sdk/test-server`](https://www.npmjs.com/package/@ai-sdk/test-server).
+> This kit mocks at the `LanguageModelV4` interface — the boundary between the AI SDK and a provider. It does not mock the HTTP/wire layer, so provider-specific wire behavior (e.g. an error inside a 200-OK SSE body) is out of scope. For that, drive a real provider against a fake server with [`@ai-sdk/test-server`](https://www.npmjs.com/package/@ai-sdk/test-server).
 
 #### Creating a Mock Model
 
@@ -250,7 +257,7 @@ const result = streamText({ model, prompt: 'Hi', abortSignal: controller.signal 
 
 #### Different Responses per Method
 
-Use the `{ doGenerate, doStream }` form to drive `doGenerate` and `doStream` independently — for example to return plain text non-streaming but a richer sequence when streamed. The keys mirror the `LanguageModelV3` method names.
+Use the `{ doGenerate, doStream }` form to drive `doGenerate` and `doStream` independently — for example to return plain text non-streaming but a richer sequence when streamed. The keys mirror the `LanguageModelV4` method names.
 
 ```typescript
 import { Language, MockLanguageModel } from 'ai-test-kit/language';
@@ -263,7 +270,7 @@ const model = MockLanguageModel.from({
 
 #### Input-Dependent Responses
 
-For a response that depends on the call (the prompt, tools, or settings), pass a function to `doGenerate` / `doStream`. It receives the call options and returns the result directly — the escape hatch for cases the declarative forms can't express, including a fully custom `LanguageModelV3StreamResult`. The `Language.result` / `Language.streamResult` builders pair well here.
+For a response that depends on the call (the prompt, tools, or settings), pass a function to `doGenerate` / `doStream`. It receives the call options and returns the result directly — the escape hatch for cases the declarative forms can't express, including a fully custom `LanguageModelV4StreamResult`. The `Language.result` / `Language.streamResult` builders pair well here.
 
 ```typescript
 import { Language, MockLanguageModel } from 'ai-test-kit/language';
@@ -315,7 +322,7 @@ model.modelId; // 'acme-1'
 
 ### Embedding Models
 
-Helpers from `ai-test-kit/embedding` to mock an `EmbeddingModelV3`. `MockEmbeddingModel.from()` takes the embedding vectors directly; pass an `Error` to throw, a function for input-dependent output, or a top-level array to script responses per call. `Embedding.vector(dimension?)` builds a sample vector when you don't care about the exact numbers.
+Helpers from `ai-test-kit/embedding` to mock an `EmbeddingModelV4`. `MockEmbeddingModel.from()` takes the embedding vectors directly; pass an `Error` to throw, a function for input-dependent output, or a top-level array to script responses per call. `Embedding.vector(dimension?)` builds a sample vector when you don't care about the exact numbers.
 
 #### Mocking Embeddings
 
@@ -342,7 +349,7 @@ const { embedding } = await embed({ model, value: 'Hello' }); // second call rec
 
 ### Image Models
 
-Helpers from `ai-test-kit/image` to mock an `ImageModelV3`. `MockImageModel.from()` takes the generated images (base64 strings or binary data); `Image.png()` is a ready-made base64 1x1 PNG (also exported as `base64Png1x1`).
+Helpers from `ai-test-kit/image` to mock an `ImageModelV4`. `MockImageModel.from()` takes the generated images (base64 strings or binary data); `Image.png()` is a ready-made base64 1x1 PNG (also exported as `base64Png1x1`).
 
 #### Mocking Image Generation
 
@@ -575,7 +582,7 @@ Factory for the mock model. The model returned by `.from()` exposes `doGenerate`
 
 #### `.from(input?, options?)`
 
-Creates a mock `LanguageModelV3` from a response spec (or a sequence of them).
+Creates a mock `LanguageModelV4` from a response spec (or a sequence of them).
 
 ```ts
 MockLanguageModel.from(input?: MockResponse | MockResponse[], options?: MockLanguageModelOptions): MockLanguageModel
@@ -593,7 +600,7 @@ MockLanguageModel.from(input?: MockResponse | MockResponse[], options?: MockLang
 #### `.callOptions(overrides?)`
 
 ```ts
-MockLanguageModel.callOptions(overrides?: Partial<LanguageModelV3CallOptions>): LanguageModelV3CallOptions
+MockLanguageModel.callOptions(overrides?: Partial<LanguageModelV4CallOptions>): LanguageModelV4CallOptions
 // MockLanguageModel.callOptions(): a valid options object with a default 'Hello!' user prompt
 // MockLanguageModel.callOptions({ temperature: 0.5 }): the default plus the override — for calling model.doGenerate / doStream directly without casts
 ```
@@ -607,21 +614,21 @@ Builders for everything a language model returns. The static content parts (`tex
 #### `.text(text)`
 
 ```ts
-Language.text(text: string): LanguageModelV3Text
+Language.text(text: string): LanguageModelV4Text
 // Language.text('Hi'): { type: 'text', text: 'Hi' }
 ```
 
 #### `.reasoning(text)`
 
 ```ts
-Language.reasoning(text: string): LanguageModelV3Reasoning
+Language.reasoning(text: string): LanguageModelV4Reasoning
 // Language.reasoning('Because...'): { type: 'reasoning', text: 'Because...' }
 ```
 
 #### `.toolCall(args)`
 
 ```ts
-Language.toolCall<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; input: unknown }): LanguageModelV3ToolCall
+Language.toolCall<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; input: unknown }): LanguageModelV4ToolCall
 // Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: { city: 'Tokyo' } }): { type: 'tool-call', toolCallId: 'c1', toolName: 'weather', input: '{"city":"Tokyo"}' } — input is JSON-stringified unless already a string. Valid in content and streams.
 // Pass <typeof tools> to constrain toolName to a tool key and input to that tool's input type; omit it to stay loose.
 ```
@@ -629,23 +636,50 @@ Language.toolCall<TOOLS extends ToolSet = never>(args: { toolCallId: string; too
 #### `.toolResult(args)`
 
 ```ts
-Language.toolResult<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; result: unknown; isError?: boolean }): LanguageModelV3ToolResult
+Language.toolResult<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; result: unknown; isError?: boolean }): LanguageModelV4ToolResult
 // Language.toolResult({ toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }): { type: 'tool-result', toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }
 // Pass <typeof tools> to constrain toolName to a tool key and result to that tool's output type; omit it to stay loose.
+```
+
+#### `.toolApprovalRequest(args)`
+
+A request for the user to approve a tool call before it runs.
+
+```ts
+Language.toolApprovalRequest(args: { approvalId: string; toolCallId: string; providerMetadata?: SharedV4ProviderMetadata }): LanguageModelV4ToolApprovalRequest
+// Language.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' }): { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' }
 ```
 
 #### `.file(args)`
 
 ```ts
-Language.file(args: { mediaType: string; data: string | Uint8Array }): LanguageModelV3File
-// Language.file({ mediaType: 'image/png', data: 'abc' }): { type: 'file', mediaType: 'image/png', data: 'abc' }
+Language.file(args: { mediaType: string; data: string | Uint8Array }): LanguageModelV4File
+// Language.file({ mediaType: 'image/png', data: 'abc' }): { type: 'file', mediaType: 'image/png', data: { type: 'data', data: 'abc' } }
 ```
 
 #### `.source(args)`
 
 ```ts
-Language.source(args: { id: string; url: string; title?: string }): LanguageModelV3Source
+Language.source(args: { id: string; url: string; title?: string }): LanguageModelV4Source
 // Language.source({ id: 's1', url: 'https://example.com' }): { type: 'source', sourceType: 'url', id: 's1', url: 'https://example.com' }
+```
+
+#### `.reasoningFile(args)`
+
+A file generated during reasoning. New in AI SDK 7.
+
+```ts
+Language.reasoningFile(args: { mediaType: string; data: string | Uint8Array }): LanguageModelV4ReasoningFile
+// Language.reasoningFile({ mediaType: 'image/png', data: 'abc' }): { type: 'reasoning-file', mediaType: 'image/png', data: { type: 'data', data: 'abc' } }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom content; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+Language.custom(args: { kind: `${string}.${string}`; providerMetadata?: SharedV4ProviderMetadata }): LanguageModelV4CustomContent
+// Language.custom({ kind: 'acme.thinking' }): { type: 'custom', kind: 'acme.thinking' }
 ```
 
 ##### Stream parts
@@ -653,7 +687,7 @@ Language.source(args: { id: string; url: string; title?: string }): LanguageMode
 #### `.streamText(text, options?)`
 
 ```ts
-Language.streamText(text: string | string[], options?: StreamPartOptions): LanguageModelV3StreamPart[]
+Language.streamText(text: string | string[], options?: StreamPartOptions): LanguageModelV4StreamPart[]
 // Language.streamText('Hi'): [{ type: 'text-start', id: '1' }, { type: 'text-delta', id: '1', delta: 'Hi' }, { type: 'text-end', id: '1' }]
 // Language.streamText(['He', 'llo']): an explicit two-delta split (string[] used as the deltas verbatim; length/separator ignored)
 ```
@@ -661,14 +695,14 @@ Language.streamText(text: string | string[], options?: StreamPartOptions): Langu
 #### `.streamReasoning(text, options?)`
 
 ```ts
-Language.streamReasoning(text: string | string[], options?: StreamPartOptions): LanguageModelV3StreamPart[]
+Language.streamReasoning(text: string | string[], options?: StreamPartOptions): LanguageModelV4StreamPart[]
 // Language.streamReasoning('Hmm'): [{ type: 'reasoning-start', id: '1' }, { type: 'reasoning-delta', id: '1', delta: 'Hmm' }, { type: 'reasoning-end', id: '1' }]
 ```
 
 #### `.streamToolInput(args)`
 
 ```ts
-Language.streamToolInput<TOOLS extends ToolSet = never>(args: { id: string; toolName: string; input: unknown; length?: number }): LanguageModelV3StreamPart[]
+Language.streamToolInput<TOOLS extends ToolSet = never>(args: { id: string; toolName: string; input: unknown; length?: number }): LanguageModelV4StreamPart[]
 // Language.streamToolInput({ id: 't1', toolName: 'weather', input: { city: 'Tokyo' } }): [{ type: 'tool-input-start', id: 't1', toolName: 'weather' }, { type: 'tool-input-delta', id: 't1', delta: '{"city":"Tokyo"}' }, { type: 'tool-input-end', id: 't1' }]
 // Pass <typeof tools> to constrain toolName to a tool key and input to that tool's input type; omit it to stay loose.
 ```
@@ -676,14 +710,14 @@ Language.streamToolInput<TOOLS extends ToolSet = never>(args: { id: string; tool
 #### `.streamStart(warnings?)`
 
 ```ts
-Language.streamStart(warnings?: SharedV3Warning[]): LanguageModelV3StreamPart
+Language.streamStart(warnings?: SharedV4Warning[]): LanguageModelV4StreamPart
 // Language.streamStart(): { type: 'stream-start', warnings: [] }
 ```
 
 #### `.streamFinish(options?)`
 
 ```ts
-Language.streamFinish(options?: { finishReason?: LanguageModelV3FinishReason | LanguageModelV3FinishReason['unified']; usage?: LanguageModelV3Usage; providerMetadata?: SharedV3ProviderMetadata }): LanguageModelV3StreamPart
+Language.streamFinish(options?: { finishReason?: LanguageModelV4FinishReason | LanguageModelV4FinishReason['unified']; usage?: LanguageModelV4Usage; providerMetadata?: SharedV4ProviderMetadata }): LanguageModelV4StreamPart
 // Language.streamFinish(): { type: 'finish', finishReason: { unified: 'stop', raw: 'stop' }, usage }
 // Language.streamFinish({ providerMetadata: { openai: { responseId: 'r1' } } }): extra fields pass through onto the part
 ```
@@ -691,21 +725,21 @@ Language.streamFinish(options?: { finishReason?: LanguageModelV3FinishReason | L
 #### `.streamError(error)`
 
 ```ts
-Language.streamError(error: unknown): LanguageModelV3StreamPart
+Language.streamError(error: unknown): LanguageModelV4StreamPart
 // Language.streamError(new Error('boom')): { type: 'error', error: Error('boom') }
 ```
 
 #### `.streamResponseMetadata(meta?)`
 
 ```ts
-Language.streamResponseMetadata(meta?: LanguageModelV3ResponseMetadata): LanguageModelV3StreamPart
+Language.streamResponseMetadata(meta?: LanguageModelV4ResponseMetadata): LanguageModelV4StreamPart
 // Language.streamResponseMetadata({ id: 'r1' }): { type: 'response-metadata', id: 'r1' }
 ```
 
 #### `.streamRaw(rawValue)`
 
 ```ts
-Language.streamRaw(rawValue: unknown): LanguageModelV3StreamPart
+Language.streamRaw(rawValue: unknown): LanguageModelV4StreamPart
 // Language.streamRaw({ foo: 1 }): { type: 'raw', rawValue: { foo: 1 } }
 ```
 
@@ -714,8 +748,8 @@ Language.streamRaw(rawValue: unknown): LanguageModelV3StreamPart
 #### `.usage(overrides?)` / `.usage(inputTotal, outputTotal)`
 
 ```ts
-Language.usage(overrides?: { inputTokens?: Partial<LanguageModelV3Usage['inputTokens']>; outputTokens?: Partial<LanguageModelV3Usage['outputTokens']> }): LanguageModelV3Usage
-Language.usage(inputTotal: number, outputTotal: number): LanguageModelV3Usage
+Language.usage(overrides?: { inputTokens?: Partial<LanguageModelV4Usage['inputTokens']>; outputTokens?: Partial<LanguageModelV4Usage['outputTokens']> }): LanguageModelV4Usage
+Language.usage(inputTotal: number, outputTotal: number): LanguageModelV4Usage
 // Language.usage({ outputTokens: { total: 99 } }): { inputTokens: { total: 10, … }, outputTokens: { total: 99, … } }
 // Language.usage(5, 8): each total mirrors into its primary sub-field — { inputTokens: { total: 5, noCache: 5, … }, outputTokens: { total: 8, text: 8, … } }
 ```
@@ -723,7 +757,7 @@ Language.usage(inputTotal: number, outputTotal: number): LanguageModelV3Usage
 #### `.result(input, options?)`
 
 ```ts
-Language.result(input: string | LanguageModelV3Content[], options?: ResultOptions): LanguageModelV3GenerateResult
+Language.result(input: string | LanguageModelV4Content[], options?: ResultOptions): LanguageModelV4GenerateResult
 // Language.result('hi'): { content: [{ type: 'text', text: 'hi' }], finishReason: { unified: 'stop', raw: 'stop' }, usage, warnings: [] }
 // Language.result([Language.text('hi')], { finishReason: 'length', usage: Language.usage(5, 8) }): finishReason coerced from a unified string; extra fields pass through
 // When finishReason is omitted it is derived from content: a pending client tool call yields 'tool-calls', otherwise 'stop'.
@@ -734,7 +768,7 @@ Language.result(input: string | LanguageModelV3Content[], options?: ResultOption
 The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. Like `result`, an omitted `finishReason` is derived from content (a pending client tool call yields `tool-calls`); note the standalone `streamFinish` atom is content-blind and always defaults to `stop`. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
 
 ```ts
-Language.streamParts(input: string | LanguageModelV3Content[], options?): LanguageModelV3StreamPart[]
+Language.streamParts(input: string | LanguageModelV4Content[], options?): LanguageModelV4StreamPart[]
 // Language.streamParts('Hello'): [stream-start, text-start, text-delta…, text-end, finish]
 // Language.streamParts([Language.text('a'), Language.toolCall({…})], { finishReason: 'tool-calls', usage }): start → content → finish
 ```
@@ -742,7 +776,7 @@ Language.streamParts(input: string | LanguageModelV3Content[], options?): Langua
 #### `.streamResult(input, options?)`
 
 ```ts
-Language.streamResult(input: string | LanguageModelV3StreamPart[] | ReadableStream<LanguageModelV3StreamPart>, options?: StreamDelayOptions): LanguageModelV3StreamResult
+Language.streamResult(input: string | LanguageModelV4StreamPart[] | ReadableStream<LanguageModelV4StreamPart>, options?: StreamDelayOptions): LanguageModelV4StreamResult
 // Language.streamResult('hi'): { stream } — a ReadableStream of stream-start → text → finish
 // Language.streamResult([...Language.streamText('hi'), Language.streamFinish()]): { stream } — a ReadableStream of the given parts
 // Language.streamResult(Streams.from(parts)): { stream } — wraps an existing ReadableStream as-is (delays ignored)
@@ -786,11 +820,11 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `EmbeddingModelV3` whose `doEmbed` is a vitest-compatible spy function. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbed.mock.calls`.
+Creates a mock `EmbeddingModelV4` whose `doEmbed` is a vitest-compatible spy function. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbed.mock.calls`.
 
 #### `.callOptions(overrides?)`
 
-Builds a minimal valid `EmbeddingModelV3CallOptions` (default `values: ['hello']`, plus any overrides), for invoking `doEmbed` directly without casts.
+Builds a minimal valid `EmbeddingModelV4CallOptions` (default `values: ['hello']`, plus any overrides), for invoking `doEmbed` directly without casts.
 
 #### `Embedding`
 
@@ -807,14 +841,14 @@ Embedding.vector(dimension?: number): EmbeddingVector
 #### `.usage(tokens?)`
 
 ```ts
-Embedding.usage(tokens?: number): EmbeddingModelV3Result['usage']
+Embedding.usage(tokens?: number): EmbeddingModelV4Result['usage']
 // Embedding.usage(9): { tokens: 9 }
 ```
 
 #### `.result(embeddings, overrides?)`
 
 ```ts
-Embedding.result(embeddings: EmbeddingVector[], overrides?: Omit<Partial<EmbeddingModelV3Result>, 'embeddings'>): EmbeddingModelV3Result
+Embedding.result(embeddings: EmbeddingVector[], overrides?: Omit<Partial<EmbeddingModelV4Result>, 'embeddings'>): EmbeddingModelV4Result
 // Embedding.result([[0.1, 0.2]]): { embeddings: [[0.1, 0.2]], usage: { tokens: 0 }, warnings: [] } — fills default usage and warnings
 ```
 
@@ -828,11 +862,11 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `ImageModelV3` whose `doGenerate` is a vitest-compatible spy function. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerate.mock.calls`.
+Creates a mock `ImageModelV4` whose `doGenerate` is a vitest-compatible spy function. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerate.mock.calls`.
 
 #### `.callOptions(overrides?)`
 
-Builds a minimal valid `ImageModelV3CallOptions` with all required keys present (default `prompt: 'A test image'`, `n: 1`, the rest `undefined`/`{}`, plus any overrides), for invoking `doGenerate` directly without casts.
+Builds a minimal valid `ImageModelV4CallOptions` with all required keys present (default `prompt: 'A test image'`, `n: 1`, the rest `undefined`/`{}`, plus any overrides), for invoking `doGenerate` directly without casts.
 
 #### `Image`
 
@@ -851,7 +885,7 @@ A valid base64 1x1 transparent PNG. `size` only accepts `'1x1'` today (the `Imag
 #### `.usage(inputTokens?, outputTokens?)`
 
 ```ts
-Image.usage(inputTokens?: number, outputTokens?: number): ImageModelV3Usage
+Image.usage(inputTokens?: number, outputTokens?: number): ImageModelV4Usage
 // Image.usage(3, 5): { inputTokens: 3, outputTokens: 5, totalTokens: 8 } — totalTokens defaults to the sum
 ```
 
@@ -903,6 +937,24 @@ UIParts.sourceDocument(args: { sourceId: string; mediaType: string; title: strin
 ```ts
 UIParts.file(args: { mediaType: string; filename?: string; url: string; providerMetadata?: ProviderMetadata }): FileUIPart
 // UIParts.file({ mediaType: 'image/png', url: 'https://example.com/a.png' }): { type: 'file', mediaType: 'image/png', url: 'https://example.com/a.png' }
+```
+
+#### `.reasoningFile(args)`
+
+A file generated during reasoning, referenced by URL. New in AI SDK 7.
+
+```ts
+UIParts.reasoningFile(args: { mediaType: string; url: string; providerMetadata?: ProviderMetadata }): ReasoningFileUIPart
+// UIParts.reasoningFile({ mediaType: 'image/png', url: 'https://example.com/r.png' }): { type: 'reasoning-file', mediaType: 'image/png', url: 'https://example.com/r.png' }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom part; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+UIParts.custom(args: { kind: `${string}.${string}`; providerMetadata?: ProviderMetadata }): CustomContentUIPart
+// UIParts.custom({ kind: 'acme.box' }): { type: 'custom', kind: 'acme.box' }
 ```
 
 #### `.stepStart()`
@@ -1021,6 +1073,15 @@ UIChunks.toolApprovalRequest(args: { approvalId: string; toolCallId: string }): 
 // UIChunks.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' }): { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' }
 ```
 
+#### `.toolApprovalResponse(args)`
+
+Grants or denies a tool approval request. New in AI SDK 7.
+
+```ts
+UIChunks.toolApprovalResponse(args: { approvalId: string; approved: boolean; reason?: string; providerExecuted?: boolean }): UIMessageChunk
+// UIChunks.toolApprovalResponse({ approvalId: 'a1', approved: true }): { type: 'tool-approval-response', approvalId: 'a1', approved: true }
+```
+
 #### `.toolOutputAvailable(args)`
 
 ```ts
@@ -1061,6 +1122,24 @@ UIChunks.sourceDocument(args: { sourceId: string; mediaType: string; title: stri
 ```ts
 UIChunks.file(args: { url: string; mediaType: string }): UIMessageChunk
 // UIChunks.file({ url: 'https://example.com/a.png', mediaType: 'image/png' }): { type: 'file', url: 'https://example.com/a.png', mediaType: 'image/png' }
+```
+
+#### `.reasoningFile(args)`
+
+A file generated during reasoning, referenced by URL. New in AI SDK 7.
+
+```ts
+UIChunks.reasoningFile(args: { url: string; mediaType: string; providerMetadata?: ProviderMetadata }): UIMessageChunk
+// UIChunks.reasoningFile({ url: 'https://example.com/r.png', mediaType: 'image/png' }): { type: 'reasoning-file', url: 'https://example.com/r.png', mediaType: 'image/png' }
+```
+
+#### `.custom(args)`
+
+Provider-specific custom content; `kind` is `{provider}.{type}`. New in AI SDK 7.
+
+```ts
+UIChunks.custom(args: { kind: `${string}.${string}`; providerMetadata?: ProviderMetadata }): UIMessageChunk
+// UIChunks.custom({ kind: 'acme.box' }): { type: 'custom', kind: 'acme.box' }
 ```
 
 #### `.data(name, data, options?)`
@@ -1265,7 +1344,7 @@ Options for `Language.result`: everything defaults, and extra fields (e.g. `prov
 
 ```ts
 import type { ResultOptions } from 'ai-test-kit/language';
-// Omit<Partial<LanguageModelV3GenerateResult>, 'content' | 'finishReason' | 'usage'> & { finishReason?; usage? }
+// Omit<Partial<LanguageModelV4GenerateResult>, 'content' | 'finishReason' | 'usage'> & { finishReason?; usage? }
 ```
 
 ### Embedding Models

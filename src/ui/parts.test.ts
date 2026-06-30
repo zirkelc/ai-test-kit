@@ -50,6 +50,22 @@ describe('UIParts', () => {
     expect(part).toEqual({ type: 'file', mediaType: 'image/png', url: 'https://example.com/a.png' });
   });
 
+  test('reasoningFile() should build a reasoning file part', () => {
+    // Act
+    const part = UIParts.reasoningFile({ mediaType: 'image/png', url: 'https://example.com/r.png' });
+
+    // Assert
+    expect(part).toEqual({ type: 'reasoning-file', mediaType: 'image/png', url: 'https://example.com/r.png' });
+  });
+
+  test('custom() should build a provider-specific custom part', () => {
+    // Act
+    const part = UIParts.custom({ kind: 'acme.box' });
+
+    // Assert
+    expect(part).toEqual({ type: 'custom', kind: 'acme.box' });
+  });
+
   test('stepStart() should build a step boundary part', () => {
     // Act
     const part = UIParts.stepStart();

@@ -43,6 +43,14 @@ export const createUIParts = <DATA extends UIDataTypes = UIDataTypes, TOOLS exte
   file: (args: PartArgs<DATA, TOOLS, 'file'>): PartOf<DATA, TOOLS, 'file'> =>
     ({ type: 'file', ...args }) as PartOf<DATA, TOOLS, 'file'>,
 
+  /** A file part generated during reasoning, referenced by URL. New in AI SDK 7. */
+  reasoningFile: (args: PartArgs<DATA, TOOLS, 'reasoning-file'>): PartOf<DATA, TOOLS, 'reasoning-file'> =>
+    ({ type: 'reasoning-file', ...args }) as PartOf<DATA, TOOLS, 'reasoning-file'>,
+
+  /** A provider-specific custom part (`kind` in the format `{provider}.{type}`). New in AI SDK 7. */
+  custom: (args: PartArgs<DATA, TOOLS, 'custom'>): PartOf<DATA, TOOLS, 'custom'> =>
+    ({ type: 'custom', ...args }) as PartOf<DATA, TOOLS, 'custom'>,
+
   /** A step boundary part. */
   stepStart: (): PartOf<DATA, TOOLS, 'step-start'> => ({ type: 'step-start' }) as PartOf<DATA, TOOLS, 'step-start'>,
 

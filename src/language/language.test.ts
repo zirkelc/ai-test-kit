@@ -32,6 +32,15 @@ describe('Language', () => {
       expect('isError' in part).toBe(false);
     });
 
+    test('toolApprovalRequest() should build a tool approval request part', () => {
+      // Assert
+      expect(Language.toolApprovalRequest({ approvalId: 'a1', toolCallId: 'c1' })).toEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'c1',
+      });
+    });
+
     test('source() should default sourceType to url and omit title when absent', () => {
       // Assert
       expect(Language.source({ id: 's1', url: 'https://x.test' })).toEqual({
@@ -39,6 +48,23 @@ describe('Language', () => {
         sourceType: 'url',
         id: 's1',
         url: 'https://x.test',
+      });
+    });
+
+    test('custom() should build a provider-specific custom part', () => {
+      // Assert
+      expect(Language.custom({ kind: 'acme.thinking' })).toEqual({
+        type: 'custom',
+        kind: 'acme.thinking',
+      });
+    });
+
+    test('reasoningFile() should wrap data in the discriminated union', () => {
+      // Assert
+      expect(Language.reasoningFile({ mediaType: 'image/png', data: 'abc' })).toEqual({
+        type: 'reasoning-file',
+        mediaType: 'image/png',
+        data: { type: 'data', data: 'abc' },
       });
     });
   });
@@ -245,6 +271,17 @@ describe('Language', () => {
 
       // Assert
       expect(parts.at(-1)).toMatchObject({ type: 'finish', finishReason: { unified: 'length', raw: 'length' } });
+    });
+
+    test('should pass a non-text content part through as a single stream part', () => {
+      // Arrange
+      const customPart = Language.custom({ kind: 'acme.thinking' });
+
+      // Act
+      const parts = Language.streamParts([customPart]);
+
+      // Assert
+      expect(parts.slice(1, -1)).toEqual([customPart]);
     });
 
     test('should derive a tool-calls finish reason from a client-executed tool call', () => {

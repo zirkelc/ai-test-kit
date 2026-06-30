@@ -1,5 +1,52 @@
 # Changelog
 
+## [3.0.0-next.3](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next.2...v3.0.0-next.3) (2026-06-25)
+
+
+### Documentation
+
+* update version compatibility notes for ai-test-kit ([5906adb](https://github.com/zirkelc/ai-test-kit/commit/5906adb331d3c0a054ba330a69ad3884e32a052a))
+
+## [3.0.0-next.2](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next.1...v3.0.0-next.2) (2026-06-25)
+
+
+### Features
+
+* **language:** add toolApprovalRequest content builder ([5641951](https://github.com/zirkelc/ai-test-kit/commit/5641951b9805ffd4cc2b57bcb4ab6ed84b1a3444))
+
+
+### Documentation
+
+* link version compatibility note to floating tags ([dd73222](https://github.com/zirkelc/ai-test-kit/commit/dd732220b44c03bc1b07abbc82c7b29a664a5f2b))
+
+
+### Continuous Integration
+
+* point a floating vX.x tag at each stable release ([efebbe0](https://github.com/zirkelc/ai-test-kit/commit/efebbe021318a7185facfc245d87c0048893ff4f))
+
+## [3.0.0-next.1](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0-next...v3.0.0-next.1) (2026-06-25)
+
+
+### Features
+
+* add builders for v7 custom, reasoning-file, and tool-approval-response parts ([0412f1c](https://github.com/zirkelc/ai-test-kit/commit/0412f1c36e45707cb9a5d6cea0e67f2128e7d0ad))
+
+## [3.0.0-next](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0...v3.0.0-next) (2026-06-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* requires AI SDK 7 (provider spec v4); drops support for ai 5.x / 6.x (provider spec v3).
+
+### Features
+
+* target AI SDK 7 (provider spec v4) ([0e891c9](https://github.com/zirkelc/ai-test-kit/commit/0e891c9c55b4c44961316c80d7d06f01c7e748aa))
+
+
+### Documentation
+
+* add version compatibility note to installation ([69faf92](https://github.com/zirkelc/ai-test-kit/commit/69faf928adb2c83319794b1b232e4ba1acc05723))
+
 ## [2.1.0](https://github.com/zirkelc/ai-test-kit/compare/v2.0.1...v2.1.0) (2026-06-26)
 
 

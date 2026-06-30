@@ -1,22 +1,22 @@
-import type { EmbeddingModelV3Embedding, EmbeddingModelV3Result } from '@ai-sdk/provider';
+import type { EmbeddingModelV4Embedding, EmbeddingModelV4Result } from '@ai-sdk/provider';
 
 /** A single embedding vector, in the same order as the embedded input values. */
-export type EmbeddingVector = EmbeddingModelV3Embedding;
+export type EmbeddingVector = EmbeddingModelV4Embedding;
 
 /** Result overrides accepted by `result`, beyond the embeddings themselves. */
-type EmbedResultOverrides = Omit<Partial<EmbeddingModelV3Result>, 'embeddings'>;
+type EmbedResultOverrides = Omit<Partial<EmbeddingModelV4Result>, 'embeddings'>;
 
 /** Small, stable token usage used when none is supplied. */
-const defaultUsage: EmbeddingModelV3Result['usage'] = { tokens: 0 };
+const defaultUsage: EmbeddingModelV4Result['usage'] = { tokens: 0 };
 
 /** A sample embedding vector of the given dimension, e.g. `[0.1, 0.2, 0.3]` for the default of `3`. */
 const vector = (dimension = 3): EmbeddingVector => Array.from({ length: dimension }, (_, index) => (index + 1) / 10);
 
 /** Builds an embedding usage object from a token count. */
-const usage = (tokens = 0): EmbeddingModelV3Result['usage'] => ({ tokens });
+const usage = (tokens = 0): EmbeddingModelV4Result['usage'] => ({ tokens });
 
 /** Builds a full embed result from a set of vectors, filling default usage and warnings. */
-const result = (embeddings: Array<EmbeddingVector>, overrides: EmbedResultOverrides = {}): EmbeddingModelV3Result => ({
+const result = (embeddings: Array<EmbeddingVector>, overrides: EmbedResultOverrides = {}): EmbeddingModelV4Result => ({
   usage: defaultUsage,
   warnings: [],
   embeddings,

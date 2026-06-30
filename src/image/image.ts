@@ -1,7 +1,7 @@
-import type { ImageModelV3, ImageModelV3Usage } from '@ai-sdk/provider';
+import type { ImageModelV4, ImageModelV4Usage } from '@ai-sdk/provider';
 
 /** The result a `doGenerate` call resolves to, derived from the spec. */
-type ImageGenerateResult = Awaited<ReturnType<ImageModelV3['doGenerate']>>;
+type ImageGenerateResult = Awaited<ReturnType<ImageModelV4['doGenerate']>>;
 
 /** The generated images: base64 strings or binary data, returned without conversion. */
 export type GeneratedImages = ImageGenerateResult['images'];
@@ -25,7 +25,7 @@ const pngBySize: Record<ImageSize, string> = { '1x1': base64Png1x1 };
 const png = (size: ImageSize = '1x1'): string => pngBySize[size];
 
 /** Builds an image usage object from token counts (`totalTokens` defaults to the sum). */
-const usage = (inputTokens = 0, outputTokens = 0): ImageModelV3Usage => ({
+const usage = (inputTokens = 0, outputTokens = 0): ImageModelV4Usage => ({
   inputTokens,
   outputTokens,
   totalTokens: inputTokens + outputTokens,

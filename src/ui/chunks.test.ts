@@ -70,6 +70,30 @@ describe('UIChunks', () => {
     expect(chunk).toEqual({ type: 'tool-output-available', toolCallId: 'call-1', output: { temp: 20 } });
   });
 
+  test('toolApprovalResponse() should build a tool approval response chunk', () => {
+    // Act
+    const chunk = UIChunks.toolApprovalResponse({ approvalId: 'a1', approved: true });
+
+    // Assert
+    expect(chunk).toEqual({ type: 'tool-approval-response', approvalId: 'a1', approved: true });
+  });
+
+  test('reasoningFile() should build a reasoning file chunk', () => {
+    // Act
+    const chunk = UIChunks.reasoningFile({ mediaType: 'image/png', url: 'https://example.com/r.png' });
+
+    // Assert
+    expect(chunk).toEqual({ type: 'reasoning-file', mediaType: 'image/png', url: 'https://example.com/r.png' });
+  });
+
+  test('custom() should build a provider-specific custom chunk', () => {
+    // Act
+    const chunk = UIChunks.custom({ kind: 'acme.box' });
+
+    // Assert
+    expect(chunk).toEqual({ type: 'custom', kind: 'acme.box' });
+  });
+
   test('data() should build a typed data chunk', () => {
     // Arrange
     const ui = createUIChunks<unknown, { weather: { city: string } }>();

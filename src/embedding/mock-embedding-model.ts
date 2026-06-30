@@ -1,4 +1,4 @@
-import type { EmbeddingModelV3, EmbeddingModelV3CallOptions, EmbeddingModelV3Result } from '@ai-sdk/provider';
+import type { EmbeddingModelV4, EmbeddingModelV4CallOptions, EmbeddingModelV4Result } from '@ai-sdk/provider';
 import { fn, type Mock } from '@vitest/spy';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { Embedding, type EmbeddingVector } from './embedding.js';
@@ -6,14 +6,14 @@ import { Embedding, type EmbeddingVector } from './embedding.js';
 export type { EmbeddingVector };
 
 /** A (possibly partial) embed result; only `embeddings` is required, the rest defaults. */
-type EmbedResultInput = Partial<EmbeddingModelV3Result> & { embeddings: Array<EmbeddingVector> };
+type EmbedResultInput = Partial<EmbeddingModelV4Result> & { embeddings: Array<EmbeddingVector> };
 
 /**
  * How to respond to a `doEmbed` call. A bare `Array<EmbeddingVector>` is the common case (just the
  * embeddings, with default usage). A function receives the call options and returns the result
  * directly — the escape hatch for input-dependent responses.
  */
-export type EmbedResponse = Array<EmbeddingVector> | Error | EmbedResultInput | EmbeddingModelV3['doEmbed'];
+export type EmbedResponse = Array<EmbeddingVector> | Error | EmbedResultInput | EmbeddingModelV4['doEmbed'];
 
 /** Optional identity overrides for a mock embedding model. */
 export type MockEmbeddingModelOptions = {
@@ -43,8 +43,8 @@ const isEmbeddingsMatrix = (value: unknown): value is Array<EmbeddingVector> =>
 /** Resolves a single response into an embed result; `undefined` means no response was configured. */
 const resolveEmbed = async (
   response: EmbedResponse | undefined,
-  options: EmbeddingModelV3CallOptions,
-): Promise<EmbeddingModelV3Result> => {
+  options: EmbeddingModelV4CallOptions,
+): Promise<EmbeddingModelV4Result> => {
   if (response === undefined) return notImplemented();
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
@@ -65,13 +65,13 @@ const pickResponse = (
 };
 
 /**
- * An `EmbeddingModelV3` mock whose `doEmbed` is a spy function. Every call is recorded on
+ * An `EmbeddingModelV4` mock whose `doEmbed` is a spy function. Every call is recorded on
  * `doEmbed.mock.calls` (the spy is vitest-compatible, so the full Vitest spy API and matchers work, but
  * the call record can also be read without the Vitest runner). Created via {@link MockEmbeddingModel.from}.
  */
-class EmbeddingModelMock implements EmbeddingModelV3 {
+class EmbeddingModelMock implements EmbeddingModelV4 {
   /** The embedding model spec version this mock implements. */
-  readonly specificationVersion = 'v3';
+  readonly specificationVersion = 'v4';
   /** The provider id. */
   readonly provider: string;
   /** The model id. */
@@ -82,7 +82,7 @@ class EmbeddingModelMock implements EmbeddingModelV3 {
   readonly supportsParallelCalls: boolean;
 
   /** Spy implementing `doEmbed`, resolving the configured response. Call args live on `.mock.calls`. */
-  doEmbed: Mock<EmbeddingModelV3['doEmbed']>;
+  doEmbed: Mock<EmbeddingModelV4['doEmbed']>;
 
   /** Builds the spy and identity from the configured response(s) and options. */
   constructor(input?: EmbedResponse | Array<EmbedResponse>, options: MockEmbeddingModelOptions = {}) {
@@ -91,25 +91,25 @@ class EmbeddingModelMock implements EmbeddingModelV3 {
     this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall ?? 1;
     this.supportsParallelCalls = options.supportsParallelCalls ?? true;
 
-    this.doEmbed = fn(async (callOptions: EmbeddingModelV3CallOptions) => {
+    this.doEmbed = fn(async (callOptions: EmbeddingModelV4CallOptions) => {
       const response = pickResponse(input, this.doEmbed.mock.calls.length - 1);
       return resolveEmbed(response, callOptions);
     });
   }
 }
 
-/** Creates a mock `EmbeddingModelV3` from a response spec (or sequence of them). */
+/** Creates a mock `EmbeddingModelV4` from a response spec (or sequence of them). */
 const from = (input?: EmbedResponse | Array<EmbedResponse>, options?: MockEmbeddingModelOptions): EmbeddingModelMock =>
   new EmbeddingModelMock(input, options);
 
-/** Builds a minimal valid `EmbeddingModelV3CallOptions`, for invoking `doEmbed` directly. */
-const callOptions = (overrides: Partial<EmbeddingModelV3CallOptions> = {}): EmbeddingModelV3CallOptions => ({
+/** Builds a minimal valid `EmbeddingModelV4CallOptions`, for invoking `doEmbed` directly. */
+const callOptions = (overrides: Partial<EmbeddingModelV4CallOptions> = {}): EmbeddingModelV4CallOptions => ({
   values: ['hello'],
   ...overrides,
 });
 
 /**
- * Factory for mock embedding models. `from` creates a mock `EmbeddingModelV3`; `callOptions` builds a valid
+ * Factory for mock embedding models. `from` creates a mock `EmbeddingModelV4`; `callOptions` builds a valid
  * options object for calling it directly. Build the values a model returns with {@link Embedding}. Exported
  * as both a value (the factory) and a type (the model instance).
  *
