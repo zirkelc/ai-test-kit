@@ -15,7 +15,8 @@ import type {
   LanguageModelV4ToolResult,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { defaultFinishReason, defaultUsage, toFinishReason } from '../internal/defaults.js';
+import type { InferToolInput, InferToolOutput, ToolSet } from 'ai';
+import { defaultFinishReason, defaultUsage, finishReasonFromContent, toFinishReason } from '../internal/defaults.js';
 import { toJSONString } from '../internal/json.js';
 import { tokenize } from '../internal/tokenize.js';
 import { simulateStream, type StreamDelayOptions } from '../streams.js';
@@ -76,21 +77,57 @@ const text = (text: string): LanguageModelV4Text => ({ type: 'text', text });
 /** A reasoning content part. */
 const reasoning = (text: string): LanguageModelV4Reasoning => ({ type: 'reasoning', text });
 
-/** A tool call. `input` is stringified to JSON unless already a string. Valid in both content and streams. */
-const toolCall = (args: { toolCallId: string; toolName: string; input: unknown }): LanguageModelV4ToolCall => ({
+/** The values of an object type, i.e. the union of its property types. */
+type ValueOf<RECORD> = RECORD[keyof RECORD];
+
+/**
+ * Correlated args for a `toolCall`: passing a `TOOLS` tool-set turns this into a union with one
+ * member per tool name, so choosing a `toolName` constrains `input` to that tool's input type.
+ * Without a tool-set (`TOOLS = never`) it falls back to the loose, unconstrained shape.
+ */
+type ToolCallArgs<TOOLS extends ToolSet> = [TOOLS] extends [never]
+  ? { toolCallId: string; toolName: string; input: unknown }
+  : ValueOf<{
+      [NAME in keyof TOOLS & string]: { toolCallId: string; toolName: NAME; input: InferToolInput<TOOLS[NAME]> };
+    }>;
+
+/** Correlated args for a `toolResult`: choosing a `toolName` constrains `result` to that tool's output type. */
+type ToolResultArgs<TOOLS extends ToolSet> = [TOOLS] extends [never]
+  ? { toolCallId: string; toolName: string; result: LanguageModelV4ToolResult['result']; isError?: boolean }
+  : ValueOf<{
+      [NAME in keyof TOOLS & string]: {
+        toolCallId: string;
+        toolName: NAME;
+        result: InferToolOutput<TOOLS[NAME]>;
+        isError?: boolean;
+      };
+    }>;
+
+/** Correlated args for a `streamToolInput`: choosing a `toolName` constrains `input` to that tool's input type. */
+type StreamToolInputArgs<TOOLS extends ToolSet> = [TOOLS] extends [never]
+  ? { id: string; toolName: string; input: unknown; length?: number }
+  : ValueOf<{
+      [NAME in keyof TOOLS & string]: {
+        id: string;
+        toolName: NAME;
+        input: InferToolInput<TOOLS[NAME]>;
+        length?: number;
+      };
+    }>;
+
+/**
+ * A tool call. `input` is stringified to JSON unless already a string. Valid in both content and streams.
+ * Pass a tool-set as `TOOLS` (e.g. `toolCall<typeof tools>(…)`) to constrain `toolName` and `input`.
+ */
+const toolCall = <TOOLS extends ToolSet = never>(args: ToolCallArgs<TOOLS>): LanguageModelV4ToolCall => ({
   type: 'tool-call',
   toolCallId: args.toolCallId,
   toolName: args.toolName,
   input: toJSONString(args.input),
 });
 
-/** A tool result. Valid in both content and streams. */
-const toolResult = (args: {
-  toolCallId: string;
-  toolName: string;
-  result: LanguageModelV4ToolResult['result'];
-  isError?: boolean;
-}): LanguageModelV4ToolResult => ({
+/** A tool result. Valid in both content and streams. Pass a tool-set as `TOOLS` to constrain `toolName` and `result`. */
+const toolResult = <TOOLS extends ToolSet = never>(args: ToolResultArgs<TOOLS>): LanguageModelV4ToolResult => ({
   type: 'tool-result',
   toolCallId: args.toolCallId,
   toolName: args.toolName,
@@ -165,13 +202,13 @@ const streamReasoning = (
   { type: 'reasoning-end', id },
 ];
 
-/** A streamed tool input: `tool-input-start` → `tool-input-delta`* → `tool-input-end`. */
-const streamToolInput = (args: {
-  id: string;
-  toolName: string;
-  input: unknown;
-  length?: number;
-}): Array<LanguageModelV4StreamPart> => [
+/**
+ * A streamed tool input: `tool-input-start` → `tool-input-delta`* → `tool-input-end`.
+ * Pass a tool-set as `TOOLS` to constrain `toolName` and `input`.
+ */
+const streamToolInput = <TOOLS extends ToolSet = never>(
+  args: StreamToolInputArgs<TOOLS>,
+): Array<LanguageModelV4StreamPart> => [
   { type: 'tool-input-start', id: args.id, toolName: args.toolName },
   ...tokenize(toJSONString(args.input), { length: args.length }).map((delta) => ({
     type: 'tool-input-delta' as const,
@@ -236,7 +273,7 @@ const streamParts = (input: StreamPartsInput, opts: FinishOptions = {}): Array<L
   return [
     streamStart(),
     ...content.flatMap((part, index) => partToStreamParts(part, String(index))),
-    streamFinish(opts),
+    streamFinish({ ...opts, finishReason: opts.finishReason ?? finishReasonFromContent(content) }),
   ];
 };
 
@@ -246,9 +283,10 @@ const result = (
   opts: ResultOptions = {},
 ): LanguageModelV4GenerateResult => {
   const { finishReason, usage, warnings, ...rest } = opts;
+  const content = typeof input === 'string' ? [text(input)] : input;
   return {
-    content: typeof input === 'string' ? [text(input)] : input,
-    finishReason: finishReason === undefined ? defaultFinishReason : toFinishReason(finishReason),
+    content,
+    finishReason: finishReason === undefined ? finishReasonFromContent(content) : toFinishReason(finishReason),
     usage: usage ?? defaultUsage,
     warnings: warnings ?? [],
     ...rest,

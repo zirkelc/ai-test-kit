@@ -8,6 +8,10 @@
       <stop offset="0" stop-color="#f472b6"/>
       <stop offset="1" stop-color="#d946ef"/>
     </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d946ef" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#d946ef" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
   <!-- ===== [ ] brackets (a test kit) ===== -->
@@ -16,9 +20,10 @@
   <path d="M532 40 L570 40 L570 180 L532 180"
         fill="none" stroke="url(#acc)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- ===== three checkmarks, light grey -> pink (tests passing) ===== -->
+  <!-- ===== three checkmarks, light grey -> pink -> accent (final passes, spotlit) ===== -->
   <path d="M224 110 L244 130 L278 88" fill="none" stroke="#94a3b8" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M334 110 L354 130 L388 88" fill="none" stroke="#ec88c4" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="470" cy="108" r="54" fill="url(#halo)"/>
   <path d="M444 110 L464 130 L498 88" fill="none" stroke="url(#acc)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
 
   <!-- ===== WORDMARK ===== -->

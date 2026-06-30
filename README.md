@@ -158,9 +158,23 @@ const result = await generateText({ model, prompt: 'Weather in Tokyo?' });
 result.toolCalls[0].toolName; // 'weather'
 ```
 
+The tool builders (`toolCall`, `toolResult`, `streamToolInput`) accept an optional tool-set generic. Pass your tool-set (e.g. `<typeof tools>`) and `toolName` is constrained to its keys, with `input` / `result` typed to the matching tool's input / output. Omit it and the builders stay loose (any name, `unknown` input), so existing call sites are unaffected.
+
+```typescript
+import { Language } from 'ai-test-kit/language';
+
+const tools = {
+  weather: tool({ inputSchema: z.object({ city: z.string() }), outputSchema: z.object({ tempC: z.number() }) }),
+};
+
+Language.toolCall<typeof tools>({ toolCallId: 'c1', toolName: 'weather', input: { city: 'Tokyo' } });
+Language.toolCall<typeof tools>({ toolCallId: 'c1', toolName: 'weahter', input: { city: 'Tokyo' } }); // ✗ unknown tool name
+Language.toolCall<typeof tools>({ toolCallId: 'c1', toolName: 'weather', input: { region: 'Tokyo' } }); // ✗ wrong input shape
+```
+
 #### Usage and Finish Reason
 
-By default a mock reports a `stop` finish reason and a small fixed token usage. Override them via the `{ content, finishReason, usage }` form to test code that branches on the finish reason or tracks token usage. `finishReason` accepts a bare unified string (`'length'`) or a full object; `Language.usage(...)` builds the token usage.
+By default a mock reports a `stop` finish reason and a small fixed token usage. When you don't set a finish reason, it is derived from the content: a pending client tool call yields `tool-calls`, matching how a real provider reports it (a provider-executed call, or one whose result is already in the content, keeps `stop`). Override it via the `{ content, finishReason, usage }` form to test code that branches on the finish reason or tracks token usage. `finishReason` accepts a bare unified string (`'length'`) or a full object; an explicit value always wins over derivation; `Language.usage(...)` builds the token usage.
 
 ```typescript
 import { Language, MockLanguageModel } from 'ai-test-kit/language';
@@ -614,15 +628,17 @@ Language.reasoning(text: string): LanguageModelV4Reasoning
 #### `.toolCall(args)`
 
 ```ts
-Language.toolCall(args: { toolCallId: string; toolName: string; input: unknown }): LanguageModelV4ToolCall
+Language.toolCall<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; input: unknown }): LanguageModelV4ToolCall
 // Language.toolCall({ toolCallId: 'c1', toolName: 'weather', input: { city: 'Tokyo' } }): { type: 'tool-call', toolCallId: 'c1', toolName: 'weather', input: '{"city":"Tokyo"}' } — input is JSON-stringified unless already a string. Valid in content and streams.
+// Pass <typeof tools> to constrain toolName to a tool key and input to that tool's input type; omit it to stay loose.
 ```
 
 #### `.toolResult(args)`
 
 ```ts
-Language.toolResult(args: { toolCallId: string; toolName: string; result: unknown; isError?: boolean }): LanguageModelV4ToolResult
+Language.toolResult<TOOLS extends ToolSet = never>(args: { toolCallId: string; toolName: string; result: unknown; isError?: boolean }): LanguageModelV4ToolResult
 // Language.toolResult({ toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }): { type: 'tool-result', toolCallId: 'c1', toolName: 'weather', result: { temp: 20 } }
+// Pass <typeof tools> to constrain toolName to a tool key and result to that tool's output type; omit it to stay loose.
 ```
 
 #### `.toolApprovalRequest(args)`
@@ -686,8 +702,9 @@ Language.streamReasoning(text: string | string[], options?: StreamPartOptions): 
 #### `.streamToolInput(args)`
 
 ```ts
-Language.streamToolInput(args: { id: string; toolName: string; input: unknown; length?: number }): LanguageModelV4StreamPart[]
+Language.streamToolInput<TOOLS extends ToolSet = never>(args: { id: string; toolName: string; input: unknown; length?: number }): LanguageModelV4StreamPart[]
 // Language.streamToolInput({ id: 't1', toolName: 'weather', input: { city: 'Tokyo' } }): [{ type: 'tool-input-start', id: 't1', toolName: 'weather' }, { type: 'tool-input-delta', id: 't1', delta: '{"city":"Tokyo"}' }, { type: 'tool-input-end', id: 't1' }]
+// Pass <typeof tools> to constrain toolName to a tool key and input to that tool's input type; omit it to stay loose.
 ```
 
 #### `.streamStart(warnings?)`
@@ -743,11 +760,12 @@ Language.usage(inputTotal: number, outputTotal: number): LanguageModelV4Usage
 Language.result(input: string | LanguageModelV4Content[], options?: ResultOptions): LanguageModelV4GenerateResult
 // Language.result('hi'): { content: [{ type: 'text', text: 'hi' }], finishReason: { unified: 'stop', raw: 'stop' }, usage, warnings: [] }
 // Language.result([Language.text('hi')], { finishReason: 'length', usage: Language.usage(5, 8) }): finishReason coerced from a unified string; extra fields pass through
+// When finishReason is omitted it is derived from content: a pending client tool call yields 'tool-calls', otherwise 'stop'.
 ```
 
 #### `.streamParts(input, options?)`
 
-The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
+The array-returning sibling of `result`: the full `stream-start` → content → `finish` parts for a response, as a plain array you can splice, snapshot, feed to a `doStream` mock, or wrap with `streamResult`. A `string` becomes one text part. `options` are the `streamFinish` options (`finishReason`, `usage`, passthrough), applied to the trailing `finish` part. Like `result`, an omitted `finishReason` is derived from content (a pending client tool call yields `tool-calls`); note the standalone `streamFinish` atom is content-blind and always defaults to `stop`. For an error stream, compose it explicitly: `[Language.streamStart(), Language.streamError(e)]`.
 
 ```ts
 Language.streamParts(input: string | LanguageModelV4Content[], options?): LanguageModelV4StreamPart[]
