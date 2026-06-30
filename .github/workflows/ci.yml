@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - next
+      - v2
   pull_request:
 
 concurrency:
@@ -105,3 +106,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         run: gh pr merge --squash --auto -R "${{ github.repository }}" "${{ fromJSON(steps.release.outputs.pr).number }}"
+
+  # Stable maintenance line for the previous major, cut from the `v2` branch.
+  # Uses the default release-please-config.json / .release-please-manifest.json,
+  # which on this branch track the 2.x line. The release PR is reviewed and
+  # merged manually; on merge it tags + creates a GitHub Release, which
+  # release.yml (on this branch) publishes under the `legacy` dist-tag so it
+  # stays off `latest`.
+  release-v2:
+    name: Release v2
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.ref == 'refs/heads/v2'
+    steps:
+      # https://github.com/googleapis/release-please-action
+      - name: Release Please
+        uses: googleapis/release-please-action@v5
+        with:
+          # https://github.com/googleapis/release-please-action?tab=readme-ov-file#github-credentials
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          target-branch: v2
