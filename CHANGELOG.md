@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0...v3.0.1) (2026-06-30)
+
+
+### Documentation
+
+* point 3.x compatibility link at the v3.x floating tag ([c9f62ce](https://github.com/zirkelc/ai-test-kit/commit/c9f62ce8e613f322a77f358af5b20187d4359331))
+
 ## [3.0.0](https://github.com/zirkelc/ai-test-kit/compare/v2.1.0...v3.0.0) (2026-06-30)
 
 
