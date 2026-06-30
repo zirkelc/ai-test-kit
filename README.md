@@ -30,7 +30,7 @@ This library turns that boilerplate into one-liners, ready to use. Models are vi
 > Version compatibility:
 >
 > - Use [`ai-test-kit@2.x`](https://github.com/zirkelc/ai-test-kit/tree/v2.x) for AI SDK v6 (provider spec `v3`)
-> - Use [`ai-test-kit@3.x`](https://github.com/zirkelc/ai-test-kit/tree/next) for AI SDK v7 (provider spec `v4`)
+> - Use [`ai-test-kit@3.x`](https://github.com/zirkelc/ai-test-kit/tree/v3.x) for AI SDK v7 (provider spec `v4`)
 
 ```bash
 npm install -D ai-test-kit@2 # for AI SDK v6
