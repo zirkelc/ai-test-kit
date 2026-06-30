@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/zirkelc/ai-test-kit/compare/v2.1.0...v2.1.1) (2026-06-30)
+
+
+### Continuous Integration
+
+* add v2 maintenance release line ([48f8975](https://github.com/zirkelc/ai-test-kit/commit/48f8975f991c6266e2fa366fd65117c339e6ed91))
+
 ## [2.1.0](https://github.com/zirkelc/ai-test-kit/compare/v2.0.1...v2.1.0) (2026-06-26)
 
 
