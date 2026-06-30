@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0](https://github.com/zirkelc/ai-test-kit/compare/v2.0.1...v2.1.0) (2026-06-26)
+
+
+### Features
+
+* **language:** add optional tool-set generic to tool builders ([50e0548](https://github.com/zirkelc/ai-test-kit/commit/50e05481d53ea922ddec9410464c40a63c8981cb))
+* **language:** derive finish reason from content ([1f92aa6](https://github.com/zirkelc/ai-test-kit/commit/1f92aa6f32e8ce6e2980d80b252bf4ec9462dc25))
+
+
+### Documentation
+
+* refresh logo and banner assets ([37388ee](https://github.com/zirkelc/ai-test-kit/commit/37388ee494b7ff8da876f29ae8af43228b33cd73))
+
 ## [2.0.1](https://github.com/zirkelc/ai-test-kit/compare/v2.0.0...v2.0.1) (2026-06-26)
 
 
