@@ -86,3 +86,47 @@ describe('UIChunks return types', () => {
     >();
   });
 });
+
+describe('UIChunks exhaustiveness', () => {
+  /**
+   * Every chunk `type` tag the builders cover. Kept in lockstep with the builders in `chunks.ts`; the
+   * `data-${string}` template stands in for the typed `data-${name}` chunks.
+   */
+  type BuiltChunkTag =
+    | 'text-start'
+    | 'text-delta'
+    | 'text-end'
+    | 'reasoning-start'
+    | 'reasoning-delta'
+    | 'reasoning-end'
+    | 'tool-input-start'
+    | 'tool-input-delta'
+    | 'tool-input-available'
+    | 'tool-input-error'
+    | 'tool-approval-request'
+    | 'tool-approval-response'
+    | 'tool-output-available'
+    | 'tool-output-error'
+    | 'tool-output-denied'
+    | 'source-url'
+    | 'source-document'
+    | 'file'
+    | 'reasoning-file'
+    | 'custom'
+    | 'start-step'
+    | 'finish-step'
+    | 'start'
+    | 'finish'
+    | 'abort'
+    | 'message-metadata'
+    | 'error'
+    | `data-${string}`;
+
+  /**
+   * Tripwire against the SDK adding or removing a chunk type. When an `ai` upgrade changes the
+   * `UIMessageChunk` union, this stops compiling until a matching builder and `BuiltChunkTag` are updated.
+   */
+  test('the builders cover every UIMessageChunk type', () => {
+    expectTypeOf<BuiltChunkTag>().toEqualTypeOf<UIMessageChunk['type']>();
+  });
+});

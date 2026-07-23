@@ -1,3 +1,4 @@
+import type { LanguageModelV4Content, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { jsonSchema, tool } from 'ai';
 import { describe, expectTypeOf, test } from 'vitest';
 import { Language } from './language.js';
@@ -65,5 +66,59 @@ describe('Language.streamToolInput', () => {
   test('the bound builder should reject input that does not match the named tool', () => {
     // @ts-expect-error 'search' expects `{ query: string }`, not `{ city: string }`
     Language.streamToolInput<typeof tools>({ id: 't1', toolName: 'search', input: { city: 'Tokyo' } });
+  });
+});
+
+describe('Language exhaustiveness', () => {
+  /** Every content-part `type` tag the builders cover. Kept in lockstep with the content builders in `language.ts`. */
+  type BuiltContentTag =
+    | 'text'
+    | 'reasoning'
+    | 'tool-call'
+    | 'tool-result'
+    | 'tool-approval-request'
+    | 'file'
+    | 'source'
+    | 'custom'
+    | 'reasoning-file';
+
+  /**
+   * Every stream-part `type` tag the builders cover: the stream-only tags plus the content parts that are
+   * valid inline in a stream. Text and reasoning are excluded: in a stream they appear only as their
+   * start/delta/end triads, never as a bare content part.
+   */
+  type BuiltStreamTag =
+    | 'stream-start'
+    | 'text-start'
+    | 'text-delta'
+    | 'text-end'
+    | 'reasoning-start'
+    | 'reasoning-delta'
+    | 'reasoning-end'
+    | 'tool-input-start'
+    | 'tool-input-delta'
+    | 'tool-input-end'
+    | 'tool-call'
+    | 'tool-result'
+    | 'tool-approval-request'
+    | 'file'
+    | 'source'
+    | 'custom'
+    | 'reasoning-file'
+    | 'response-metadata'
+    | 'finish'
+    | 'raw'
+    | 'error';
+
+  /**
+   * Tripwires against the provider spec adding or removing a part. When an `@ai-sdk/provider` upgrade
+   * changes these unions, they stop compiling until a matching builder and the tag list are updated.
+   */
+  test('the content builders cover every LanguageModelV4Content type', () => {
+    expectTypeOf<BuiltContentTag>().toEqualTypeOf<LanguageModelV4Content['type']>();
+  });
+
+  test('the stream builders cover every LanguageModelV4StreamPart type', () => {
+    expectTypeOf<BuiltStreamTag>().toEqualTypeOf<LanguageModelV4StreamPart['type']>();
   });
 });

@@ -6,7 +6,10 @@ import type {
   SourceUrlUIPart,
   StepStartUIPart,
   TextUIPart,
+  UIDataTypes,
   UIMessage,
+  UIMessagePart,
+  UITools,
 } from 'ai';
 import { describe, expectTypeOf, test } from 'vitest';
 import { fromUIMessage } from './from-ui-message.js';
@@ -42,5 +45,32 @@ describe('UIParts return types', () => {
     expectTypeOf(BoundParts.data('weather', { city: 'Tokyo' })).toEqualTypeOf<
       UIMessageParts<MyUIMessage>['data-weather']
     >();
+  });
+});
+
+describe('UIParts exhaustiveness', () => {
+  /**
+   * Every part `type` tag the builders cover. Kept in lockstep with the builders in `parts.ts`; the
+   * `tool-${string}` / `data-${string}` templates stand in for the typed `tool-${name}` / `data-${name}` parts.
+   */
+  type BuiltPartTag =
+    | 'text'
+    | 'reasoning'
+    | 'source-url'
+    | 'source-document'
+    | 'file'
+    | 'reasoning-file'
+    | 'custom'
+    | 'step-start'
+    | 'dynamic-tool'
+    | `tool-${string}`
+    | `data-${string}`;
+
+  /**
+   * Tripwire against the SDK adding or removing a part type. When an `ai` upgrade changes the
+   * `UIMessagePart` union, this stops compiling until a matching builder and `BuiltPartTag` are updated.
+   */
+  test('the builders cover every UIMessagePart type', () => {
+    expectTypeOf<BuiltPartTag>().toEqualTypeOf<UIMessagePart<UIDataTypes, UITools>['type']>();
   });
 });
