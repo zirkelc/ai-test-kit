@@ -122,3 +122,25 @@ describe('Language exhaustiveness', () => {
     expectTypeOf<BuiltStreamTag>().toEqualTypeOf<LanguageModelV4StreamPart['type']>();
   });
 });
+
+describe('Language singular stream builders', () => {
+  test('each singular builder should return the wide stream-part type', () => {
+    expectTypeOf(Language.streamTextStart()).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamTextDelta('a')).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamTextEnd()).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamReasoningStart()).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamReasoningDelta('a')).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamReasoningEnd()).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamToolInputStart('w')).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamToolInputDelta('a')).toEqualTypeOf<LanguageModelV4StreamPart>();
+    expectTypeOf(Language.streamToolInputEnd()).toEqualTypeOf<LanguageModelV4StreamPart>();
+  });
+
+  test('the delta builders should take the delta string first, then options', () => {
+    expectTypeOf(Language.streamTextDelta).toBeCallableWith('hi');
+    expectTypeOf(Language.streamTextDelta).toBeCallableWith('hi', { id: '2' });
+    expectTypeOf(Language.streamReasoningDelta).toBeCallableWith('hmm', { id: 'r' });
+    expectTypeOf(Language.streamToolInputStart).toBeCallableWith('weather', { id: 't1' });
+    expectTypeOf(Language.streamToolInputDelta).toBeCallableWith('{', { id: 't1' });
+  });
+});

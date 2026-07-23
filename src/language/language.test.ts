@@ -100,6 +100,49 @@ describe('Language', () => {
       ]);
     });
 
+    test('the singular text builders should build their parts and default the id to "1"', () => {
+      // Assert
+      expect(Language.streamTextStart()).toEqual({ type: 'text-start', id: '1' });
+      expect(Language.streamTextDelta('hi')).toEqual({ type: 'text-delta', id: '1', delta: 'hi' });
+      expect(Language.streamTextEnd()).toEqual({ type: 'text-end', id: '1' });
+    });
+
+    test('the singular reasoning builders should build their parts with a custom id', () => {
+      // Assert
+      expect(Language.streamReasoningStart({ id: 'r' })).toEqual({ type: 'reasoning-start', id: 'r' });
+      expect(Language.streamReasoningDelta('hm', { id: 'r' })).toEqual({
+        type: 'reasoning-delta',
+        id: 'r',
+        delta: 'hm',
+      });
+      expect(Language.streamReasoningEnd({ id: 'r' })).toEqual({ type: 'reasoning-end', id: 'r' });
+    });
+
+    test('the singular tool-input builders should build their parts', () => {
+      // Assert
+      expect(Language.streamToolInputStart('weather', { id: 't1' })).toEqual({
+        type: 'tool-input-start',
+        id: 't1',
+        toolName: 'weather',
+      });
+      expect(Language.streamToolInputDelta('{', { id: 't1' })).toEqual({
+        type: 'tool-input-delta',
+        id: 't1',
+        delta: '{',
+      });
+      expect(Language.streamToolInputEnd({ id: 't1' })).toEqual({ type: 'tool-input-end', id: 't1' });
+    });
+
+    test('streamText() should compose the singular text builders', () => {
+      // Assert
+      expect(Language.streamText('ab', { length: 1 })).toEqual([
+        Language.streamTextStart(),
+        Language.streamTextDelta('a'),
+        Language.streamTextDelta('b'),
+        Language.streamTextEnd(),
+      ]);
+    });
+
     test('streamStart() should default warnings to an empty array', () => {
       // Assert
       expect(Language.streamStart()).toEqual({ type: 'stream-start', warnings: [] });

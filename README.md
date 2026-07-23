@@ -684,12 +684,55 @@ Language.custom(args: { kind: `${string}.${string}`; providerMetadata?: SharedV4
 
 ##### Stream parts
 
+#### `.streamTextStart(options?)`
+
+```ts
+Language.streamTextStart(options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamTextStart(): { type: 'text-start', id: '1' } — id defaults to '1'
+```
+
+#### `.streamTextDelta(text, options?)`
+
+```ts
+Language.streamTextDelta(text: string, options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamTextDelta('Hi'): { type: 'text-delta', id: '1', delta: 'Hi' } — the delta string comes first, mirroring streamText
+```
+
+#### `.streamTextEnd(options?)`
+
+```ts
+Language.streamTextEnd(options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamTextEnd(): { type: 'text-end', id: '1' }
+```
+
 #### `.streamText(text, options?)`
 
 ```ts
 Language.streamText(text: string | string[], options?: StreamPartOptions): LanguageModelV4StreamPart[]
 // Language.streamText('Hi'): [{ type: 'text-start', id: '1' }, { type: 'text-delta', id: '1', delta: 'Hi' }, { type: 'text-end', id: '1' }]
 // Language.streamText(['He', 'llo']): an explicit two-delta split (string[] used as the deltas verbatim; length/separator ignored)
+// Composed from streamTextStart / streamTextDelta / streamTextEnd.
+```
+
+#### `.streamReasoningStart(options?)`
+
+```ts
+Language.streamReasoningStart(options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamReasoningStart(): { type: 'reasoning-start', id: '1' }
+```
+
+#### `.streamReasoningDelta(text, options?)`
+
+```ts
+Language.streamReasoningDelta(text: string, options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamReasoningDelta('Hmm'): { type: 'reasoning-delta', id: '1', delta: 'Hmm' }
+```
+
+#### `.streamReasoningEnd(options?)`
+
+```ts
+Language.streamReasoningEnd(options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamReasoningEnd(): { type: 'reasoning-end', id: '1' }
 ```
 
 #### `.streamReasoning(text, options?)`
@@ -697,6 +740,28 @@ Language.streamText(text: string | string[], options?: StreamPartOptions): Langu
 ```ts
 Language.streamReasoning(text: string | string[], options?: StreamPartOptions): LanguageModelV4StreamPart[]
 // Language.streamReasoning('Hmm'): [{ type: 'reasoning-start', id: '1' }, { type: 'reasoning-delta', id: '1', delta: 'Hmm' }, { type: 'reasoning-end', id: '1' }]
+// Composed from streamReasoningStart / streamReasoningDelta / streamReasoningEnd.
+```
+
+#### `.streamToolInputStart(toolName, options?)`
+
+```ts
+Language.streamToolInputStart(toolName: string, options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamToolInputStart('weather', { id: 't1' }): { type: 'tool-input-start', id: 't1', toolName: 'weather' }
+```
+
+#### `.streamToolInputDelta(text, options?)`
+
+```ts
+Language.streamToolInputDelta(text: string, options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamToolInputDelta('{"city":"Tokyo"}', { id: 't1' }): { type: 'tool-input-delta', id: 't1', delta: '{"city":"Tokyo"}' }
+```
+
+#### `.streamToolInputEnd(options?)`
+
+```ts
+Language.streamToolInputEnd(options?: { id?: string }): LanguageModelV4StreamPart
+// Language.streamToolInputEnd({ id: 't1' }): { type: 'tool-input-end', id: 't1' }
 ```
 
 #### `.streamToolInput(args)`
@@ -705,6 +770,7 @@ Language.streamReasoning(text: string | string[], options?: StreamPartOptions): 
 Language.streamToolInput<TOOLS extends ToolSet = never>(args: { id: string; toolName: string; input: unknown; length?: number }): LanguageModelV4StreamPart[]
 // Language.streamToolInput({ id: 't1', toolName: 'weather', input: { city: 'Tokyo' } }): [{ type: 'tool-input-start', id: 't1', toolName: 'weather' }, { type: 'tool-input-delta', id: 't1', delta: '{"city":"Tokyo"}' }, { type: 'tool-input-end', id: 't1' }]
 // Pass <typeof tools> to constrain toolName to a tool key and input to that tool's input type; omit it to stay loose.
+// Composed from streamToolInputStart / streamToolInputDelta / streamToolInputEnd.
 ```
 
 #### `.streamStart(warnings?)`
@@ -1331,7 +1397,7 @@ import type { MockLanguageModelOptions } from 'ai-test-kit/language';
 
 #### `StreamPartOptions`
 
-Options for the streamed-text part builders (`Language.streamText` / `Language.streamReasoning`).
+Options for the streamed-text block builders (`Language.streamText` / `Language.streamReasoning`).
 
 ```ts
 import type { StreamPartOptions } from 'ai-test-kit/language';

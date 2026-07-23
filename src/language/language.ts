@@ -21,10 +21,14 @@ import { toJSONString } from '../internal/json.js';
 import { tokenize } from '../internal/tokenize.js';
 import { simulateStream, type StreamDelayOptions } from '../streams.js';
 
-/** Options for the streamed-text builders: a stable part `id` plus a tokenization strategy. */
-export type StreamPartOptions = {
-  /** Stable id shared by the start/delta/end parts. */
+/** Options for a singular stream-part builder: the stable part `id`, defaulting to `'1'`. */
+type StreamPartIdOptions = {
+  /** Stable id shared by the start/delta/end parts of one block. */
   id?: string;
+};
+
+/** Options for the streamed-text block builders: a stable part `id` plus a tokenization strategy. */
+export type StreamPartOptions = StreamPartIdOptions & {
   /** Split the text into fixed-size slices of at most this many characters. */
   length?: number;
   /** Split the text on this delimiter, re-appending it to each token. */
@@ -179,6 +183,22 @@ const reasoningFile = (args: { mediaType: string; data: string | Uint8Array }): 
 const toDeltas = (text: string | Array<string>, length?: number, separator?: string): Array<string> =>
   Array.isArray(text) ? text : tokenize(text, { length, separator });
 
+/** A `text-start` part opening a streamed text block. */
+const streamTextStart = ({ id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'text-start',
+  id,
+});
+
+/** A `text-delta` part carrying a slice of streamed text. */
+const streamTextDelta = (text: string, { id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'text-delta',
+  id,
+  delta: text,
+});
+
+/** A `text-end` part closing a streamed text block. */
+const streamTextEnd = ({ id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({ type: 'text-end', id });
+
 /**
  * A streamed text block: `text-start` → `text-delta`* → `text-end`. A `string` is split per
  * `length`/`separator`; an `Array<string>` is used as the deltas verbatim.
@@ -187,20 +207,59 @@ const streamText = (
   text: string | Array<string>,
   { id = '1', length, separator }: StreamPartOptions = {},
 ): Array<LanguageModelV4StreamPart> => [
-  { type: 'text-start', id },
-  ...toDeltas(text, length, separator).map((delta) => ({ type: 'text-delta' as const, id, delta })),
-  { type: 'text-end', id },
+  streamTextStart({ id }),
+  ...toDeltas(text, length, separator).map((delta) => streamTextDelta(delta, { id })),
+  streamTextEnd({ id }),
 ];
+
+/** A `reasoning-start` part opening a streamed reasoning block. */
+const streamReasoningStart = ({ id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'reasoning-start',
+  id,
+});
+
+/** A `reasoning-delta` part carrying a slice of streamed reasoning. */
+const streamReasoningDelta = (text: string, { id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'reasoning-delta',
+  id,
+  delta: text,
+});
+
+/** A `reasoning-end` part closing a streamed reasoning block. */
+const streamReasoningEnd = ({ id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'reasoning-end',
+  id,
+});
 
 /** A streamed reasoning block: `reasoning-start` → `reasoning-delta`* → `reasoning-end`. */
 const streamReasoning = (
   text: string | Array<string>,
   { id = '1', length, separator }: StreamPartOptions = {},
 ): Array<LanguageModelV4StreamPart> => [
-  { type: 'reasoning-start', id },
-  ...toDeltas(text, length, separator).map((delta) => ({ type: 'reasoning-delta' as const, id, delta })),
-  { type: 'reasoning-end', id },
+  streamReasoningStart({ id }),
+  ...toDeltas(text, length, separator).map((delta) => streamReasoningDelta(delta, { id })),
+  streamReasoningEnd({ id }),
 ];
+
+/** A `tool-input-start` part opening a streamed tool input. */
+const streamToolInputStart = (toolName: string, { id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'tool-input-start',
+  id,
+  toolName,
+});
+
+/** A `tool-input-delta` part carrying a slice of the streamed tool input. */
+const streamToolInputDelta = (text: string, { id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'tool-input-delta',
+  id,
+  delta: text,
+});
+
+/** A `tool-input-end` part closing a streamed tool input. */
+const streamToolInputEnd = ({ id = '1' }: StreamPartIdOptions = {}): LanguageModelV4StreamPart => ({
+  type: 'tool-input-end',
+  id,
+});
 
 /**
  * A streamed tool input: `tool-input-start` → `tool-input-delta`* → `tool-input-end`.
@@ -209,13 +268,11 @@ const streamReasoning = (
 const streamToolInput = <TOOLS extends ToolSet = never>(
   args: StreamToolInputArgs<TOOLS>,
 ): Array<LanguageModelV4StreamPart> => [
-  { type: 'tool-input-start', id: args.id, toolName: args.toolName },
-  ...tokenize(toJSONString(args.input), { length: args.length }).map((delta) => ({
-    type: 'tool-input-delta' as const,
-    id: args.id,
-    delta,
-  })),
-  { type: 'tool-input-end', id: args.id },
+  streamToolInputStart(args.toolName, { id: args.id }),
+  ...tokenize(toJSONString(args.input), { length: args.length }).map((delta) =>
+    streamToolInputDelta(delta, { id: args.id }),
+  ),
+  streamToolInputEnd({ id: args.id }),
 ];
 
 /** The opening `stream-start` part carrying call warnings. */
@@ -321,8 +378,17 @@ export const Language = {
   source,
   custom,
   reasoningFile,
+  streamTextStart,
+  streamTextDelta,
+  streamTextEnd,
   streamText,
+  streamReasoningStart,
+  streamReasoningDelta,
+  streamReasoningEnd,
   streamReasoning,
+  streamToolInputStart,
+  streamToolInputDelta,
+  streamToolInputEnd,
   streamToolInput,
   streamStart,
   streamFinish,
