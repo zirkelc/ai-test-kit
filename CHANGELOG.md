@@ -1,5 +1,22 @@
 # Changelog
 
+## [3.1.0](https://github.com/zirkelc/ai-test-kit/compare/v3.0.1...v3.1.0) (2026-07-23)
+
+
+### Features
+
+* **language:** add singular stream-part builders ([73bacd5](https://github.com/zirkelc/ai-test-kit/commit/73bacd504f2a270f4564b0e49fef1612c6947ef1))
+
+
+### Tests
+
+* **types:** guard builder coverage against SDK part/chunk unions ([df47e5c](https://github.com/zirkelc/ai-test-kit/commit/df47e5c3f4919349658d407237374de1841cc9f2))
+
+
+### Miscellaneous Chores
+
+* **deps:** upgrade AI SDK deps to latest ([dccea9a](https://github.com/zirkelc/ai-test-kit/commit/dccea9a8f023e81863a9c1075fde6a952bbd9986))
+
 ## [3.0.1](https://github.com/zirkelc/ai-test-kit/compare/v3.0.0...v3.0.1) (2026-06-30)
 
 
