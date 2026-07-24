@@ -218,12 +218,14 @@ const model = MockLanguageModel.from({ doStream: Language.streamParts('Hello Wor
 const failing = MockLanguageModel.from({ doStream: [Language.streamStart(), Language.streamError(new Error('boom'))] });
 ```
 
-`streamParts` returns the raw parts array — splice it, snapshot it, or feed it to `doStream` as above. When you need a consumable `{ stream }` instead — passing a ready stream, or returning from the function form of `doStream` — use `Language.streamResult(...)`, which wraps the same `string` or parts:
+`streamParts` returns the raw parts array — splice it, snapshot it, or feed it to `doStream` as above. When you need a consumable `{ stream }` instead — passing a ready stream, or returning from the function form of `doStream` — use `Language.streamResult(...)`, which wraps the same `string` or parts and can be passed straight to the `doStream` form:
 
 ```typescript
 const model = MockLanguageModel.from({
   doStream: ({ prompt }) => Language.streamResult(prompt.length > 0 ? 'has prompt' : 'empty'),
 });
+
+const ready = MockLanguageModel.from({ doStream: Language.streamResult('Hello World') });
 ```
 
 For timing tests, give the `doStream` form a `{ chunks, ... }` object with delays (or use `Streams.simulate`):
@@ -254,6 +256,19 @@ const model = MockLanguageModel.from({
 const result = streamText({ model, prompt: 'Hi', abortSignal: controller.signal });
 // ...later, controller.abort() makes the stream reject with an AbortError
 ```
+
+#### Single-Method Mocks
+
+`from()` drives both methods. When a test should exercise only one — and calling the other should fail loudly — use `MockLanguageModel.stream()` or `MockLanguageModel.generate()`. Each takes the same responses as the matching `doStream` / `doGenerate` key and leaves the other method unimplemented (it throws when called).
+
+```typescript
+import { MockLanguageModel } from 'ai-test-kit/language';
+
+const streaming = MockLanguageModel.stream('Hello World'); // doGenerate throws
+const generating = MockLanguageModel.generate('Hello World'); // doStream throws
+```
+
+They are sugar for `from({ doStream })` / `from({ doGenerate })`, so every stream/generate response form works, including a pre-built `Language.streamResult(...)`. To sequence responses across calls, use `from()` with an array.
 
 #### Different Responses per Method
 

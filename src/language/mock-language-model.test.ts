@@ -93,6 +93,18 @@ describe('MockLanguageModel', () => {
       expect(text).toBe('Hello World');
     });
 
+    test('should stream from a pre-built stream result in the stream form', async () => {
+      // Arrange
+      const model = MockLanguageModel.from({ doStream: Language.streamResult('streamed') });
+
+      // Act
+      const result = streamText({ model, prompt: 'Hi', ...Options.stream });
+      const text = (await Streams.toArray(result.textStream)).join('');
+
+      // Assert
+      expect(text).toBe('streamed');
+    });
+
     test('should stream from composed StreamParts', async () => {
       // Arrange
       const chunks = [Language.streamStart(), ...Language.streamText('abcdef', { length: 2 }), Language.streamFinish()];
@@ -235,6 +247,65 @@ describe('MockLanguageModel', () => {
 
       // Assert
       expect(third.text).toBe('last');
+    });
+  });
+
+  describe('single-method helpers', () => {
+    test('stream() should drive doStream from the response', async () => {
+      // Arrange
+      const model = MockLanguageModel.stream('streamed');
+
+      // Act
+      const result = streamText({ model, prompt: 'Hi', ...Options.stream });
+      const text = (await Streams.toArray(result.textStream)).join('');
+
+      // Assert
+      expect(text).toBe('streamed');
+    });
+
+    test('stream() should leave doGenerate unimplemented', async () => {
+      // Arrange
+      const model = MockLanguageModel.stream('streamed');
+
+      // Act
+      const result = model.doGenerate(MockLanguageModel.callOptions());
+
+      // Assert
+      await expect(result).rejects.toThrow();
+    });
+
+    test('stream() should accept a pre-built stream result', async () => {
+      // Arrange
+      const model = MockLanguageModel.stream(Language.streamResult('via streamResult'));
+
+      // Act
+      const result = streamText({ model, prompt: 'Hi', ...Options.stream });
+      const text = (await Streams.toArray(result.textStream)).join('');
+
+      // Assert
+      expect(text).toBe('via streamResult');
+    });
+
+    test('generate() should drive doGenerate from the response', async () => {
+      // Arrange
+      const model = MockLanguageModel.generate('generated');
+
+      // Act
+      const result = await generateText({ model, prompt: 'Hi', ...Options.generate });
+
+      // Assert
+      expect(result.text).toBe('generated');
+    });
+
+    test('generate() should leave doStream unimplemented', async () => {
+      // Arrange
+      const model = MockLanguageModel.generate('generated');
+
+      // Act
+      const result = model.doStream(MockLanguageModel.callOptions());
+
+      // Assert
+      await expect(result).rejects.toThrow();
     });
   });
 

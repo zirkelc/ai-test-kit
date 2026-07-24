@@ -39,6 +39,7 @@ export type StreamResponse =
   | Error
   | Array<LanguageModelV4StreamPart>
   | ReadableStream<LanguageModelV4StreamPart>
+  | LanguageModelV4StreamResult
   | ({ chunks: Array<LanguageModelV4StreamPart> } & StreamDelayOptions)
   | LanguageModelV4['doStream'];
 
@@ -77,6 +78,14 @@ const isExplicit = (response: MockResponse): response is { doGenerate?: Generate
   !(response instanceof Error) &&
   ('doGenerate' in response || 'doStream' in response);
 
+/** Narrows a stream response to a pre-built stream result (a `{ stream }` object, as from `Language.streamResult`). */
+const isStreamResult = (response: StreamResponse): response is LanguageModelV4StreamResult =>
+  typeof response === 'object' &&
+  response !== null &&
+  !(response instanceof Error) &&
+  'stream' in response &&
+  response.stream instanceof ReadableStream;
+
 /** Resolves the `doGenerate` form of an explicit response into a generate result. */
 const resolveGenerateResponse = async (
   response: GenerateResponse,
@@ -99,6 +108,7 @@ const resolveStreamResponse = async (
   if (response instanceof Error) throw response;
   if (Array.isArray(response)) return Language.streamResult(response, { abortSignal });
   if (response instanceof ReadableStream) return Language.streamResult(response);
+  if (isStreamResult(response)) return response;
   if (typeof response === 'function') return response(options);
   return Language.streamResult(response.chunks, {
     initialDelayInMs: response.initialDelayInMs,
@@ -197,6 +207,20 @@ class LanguageModelMock implements LanguageModelV4 {
 const from = (input?: MockResponse | Array<MockResponse>, options?: MockLanguageModelOptions): LanguageModelMock =>
   new LanguageModelMock(input, options);
 
+/**
+ * Creates a stream-only mock: the `response` drives `doStream` and `doGenerate` is left unimplemented.
+ * Sugar for `from({ doStream: response })`. For a per-call sequence, use `from` with an `Array<MockResponse>`.
+ */
+const stream = (response: StreamResponse, options?: MockLanguageModelOptions): LanguageModelMock =>
+  from({ doStream: response }, options);
+
+/**
+ * Creates a generate-only mock: the `response` drives `doGenerate` and `doStream` is left unimplemented.
+ * Sugar for `from({ doGenerate: response })`. For a per-call sequence, use `from` with an `Array<MockResponse>`.
+ */
+const generate = (response: GenerateResponse, options?: MockLanguageModelOptions): LanguageModelMock =>
+  from({ doGenerate: response }, options);
+
 /** Builds a minimal valid `LanguageModelV4CallOptions`, for invoking `doGenerate` / `doStream` directly. */
 const callOptions = (overrides: Partial<LanguageModelV4CallOptions> = {}): LanguageModelV4CallOptions => ({
   prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello!' }] }],
@@ -204,16 +228,19 @@ const callOptions = (overrides: Partial<LanguageModelV4CallOptions> = {}): Langu
 });
 
 /**
- * Factory for mock language models. `from` creates a mock `LanguageModelV4`; `callOptions` builds a valid
- * options object for calling its methods directly. Build the values a model returns with {@link Language}.
- * Exported as both a value (the factory) and a type (the model instance).
+ * Factory for mock language models. `from` creates a mock `LanguageModelV4` driving both methods; `stream` /
+ * `generate` create single-method mocks (the other method throws); `callOptions` builds a valid options
+ * object for calling the methods directly. Build the values a model returns with {@link Language}. Exported
+ * as both a value (the factory) and a type (the model instance).
  *
  * @example
  * const model = MockLanguageModel.from('Hello, world!');
  * const flaky = MockLanguageModel.from([new Error('rate limited'), 'recovered']);
  * const built = MockLanguageModel.from({ content: [Language.text('Hi')] });
+ * const streamed = MockLanguageModel.stream('Hi');
+ * const generated = MockLanguageModel.generate('Hi');
  */
-export const MockLanguageModel = { from, callOptions };
+export const MockLanguageModel = { from, stream, generate, callOptions };
 
 /** A mock language model instance, as returned by {@link MockLanguageModel.from}. */
 export type MockLanguageModel = LanguageModelMock;
