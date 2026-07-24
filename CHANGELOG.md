@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/zirkelc/ai-test-kit/compare/v3.1.0...v3.2.0) (2026-07-24)
+
+
+### Features
+
+* **language:** add stream/generate single-method mock helpers ([702abb3](https://github.com/zirkelc/ai-test-kit/commit/702abb348a8fd955d07c699ceee6c75c3133c88f))
+
 ## [3.1.0](https://github.com/zirkelc/ai-test-kit/compare/v3.0.1...v3.1.0) (2026-07-23)
 
 
