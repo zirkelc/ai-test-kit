@@ -1,5 +1,6 @@
 import type { ImageModelV4, ImageModelV4CallOptions } from '@ai-sdk/provider';
 import { fn, type Mock } from '@vitest/spy';
+import { type CallDelayOptions, delayOrAbort, type ErrorInput, isErrorInput } from '../internal/delay.js';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { type GeneratedImages, Image } from './image.js';
 
@@ -8,15 +9,20 @@ export type { GeneratedImages };
 /** The result a `doGenerate` call resolves to, derived from the spec. */
 type ImageGenerateResult = Awaited<ReturnType<ImageModelV4['doGenerate']>>;
 
-/** A (possibly partial) generate result; only `images` is required, the rest defaults. */
-type ImageResultInput = Partial<ImageGenerateResult> & { images: GeneratedImages };
+/**
+ * A (possibly partial) generate result; only `images` is required, the rest defaults. `delayInMs` makes
+ * the call take that long to resolve.
+ */
+type ImageResultInput = Partial<ImageGenerateResult> & CallDelayOptions & { images: GeneratedImages };
 
 /**
  * How to respond to a `doGenerate` call. A bare `images` array is the common case (just the images,
- * with default response metadata). A function receives the call options and returns the result
- * directly — the escape hatch for input-dependent responses.
+ * with default response metadata). The `{ images, ... }` and `{ error, ... }` forms take a `delayInMs`
+ * to simulate a slow answer or a slow failure, aborting mid-delay when the call's `abortSignal` fires.
+ * A function receives the call options and returns the result directly — the escape hatch for
+ * input-dependent responses.
  */
-export type ImageResponse = GeneratedImages | Error | ImageResultInput | ImageModelV4['doGenerate'];
+export type ImageResponse = GeneratedImages | Error | ImageResultInput | ErrorInput | ImageModelV4['doGenerate'];
 
 /** Optional identity overrides for a mock image model. */
 export type MockImageModelOptions = {
@@ -51,7 +57,12 @@ const resolveGenerate = async (
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
   if (Array.isArray(response)) return Image.result(response, { response: { modelId } });
-  const { images, ...rest } = response;
+  if (isErrorInput(response)) {
+    await delayOrAbort(response.delayInMs, options.abortSignal);
+    throw response.error;
+  }
+  const { images, delayInMs, ...rest } = response;
+  await delayOrAbort(delayInMs, options.abortSignal);
   return Image.result(images, { ...rest, response: { modelId, ...rest.response } });
 };
 

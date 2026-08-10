@@ -1,5 +1,6 @@
 import { convertArrayToReadableStream, convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { Errors } from './errors.js';
+import { delay } from './internal/delay.js';
 
 /** Simulated timing for a stream. Shared by `Streams.simulate`, `MockLanguageModel.streamResult`, and the `stream` chunks form. */
 export type StreamDelayOptions = {
@@ -10,27 +11,6 @@ export type StreamDelayOptions = {
   /** When provided, the stream errors with an `AbortError` the instant the signal fires. */
   abortSignal?: AbortSignal;
 };
-
-/**
- * Waits `ms`, resolving early if the signal aborts so the caller can react immediately. A non-positive or
- * `null` delay resolves at once without scheduling a timer, so it stays inert under `vi.useFakeTimers()`.
- */
-const delay = (ms: number | null, signal: AbortSignal | undefined): Promise<void> =>
-  new Promise((resolve) => {
-    if (ms == null || ms <= 0) {
-      resolve();
-      return;
-    }
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      resolve();
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, ms);
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
 
 /**
  * Builds a `ReadableStream`, a port of the AI SDK's `simulateReadableStream` extended with abort handling:

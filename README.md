@@ -228,17 +228,46 @@ const model = MockLanguageModel.from({
 const ready = MockLanguageModel.from({ doStream: Language.streamResult('Hello World') });
 ```
 
-For timing tests, give the `doStream` form a `{ chunks, ... }` object with delays (or use `Streams.simulate`):
+#### Delays
+
+Streams can be made slow with `initialDelayInMs` / `chunkDelayInMs`, so a timing or deadline test needs no hand-rolled timer.
+
+> [!TIP]
+> You can also use `Streams.simulate()` to create a delayed stream.
 
 ```typescript
 const model = MockLanguageModel.from({
   doStream: {
-    chunks: [...Language.streamText('slow'), Language.streamFinish()],
+    chunks: [...Language.streamText('This is a slow response', { separator: ' ' }), Language.streamFinish()],
     initialDelayInMs: 10,
     chunkDelayInMs: 5,
   },
 });
 ```
+
+A non-streaming call takes a single `delayInMs` instead. The call's `abortSignal` is wired in automatically: when it fires mid-delay the call rejects with an `AbortError` and the pending timer is cleared, exactly like a real provider cut short by a per-attempt deadline.
+
+```typescript
+import { generateText } from 'ai';
+import { Language, MockLanguageModel } from 'ai-test-kit/language';
+
+const model = MockLanguageModel.from({
+  doGenerate: { content: [Language.text('eventually')], delayInMs: 5_000 },
+});
+
+const result = generateText({ model, prompt: 'Hi', abortSignal: AbortSignal.timeout(1_000) });
+// rejects with an AbortError after 1s, rather than resolving at 5s
+```
+
+The same delay works on the `{ error, ... }` form, for a provider that times out instead of answering:
+
+```typescript
+import { Errors } from 'ai-test-kit';
+
+const model = MockLanguageModel.from({ doGenerate: { error: Errors.serviceUnavailable(), delayInMs: 5_000 } });
+```
+
+Every delay is inert unless positive: `0`, `null`, or an unset delay schedules no timer at all, so an undelayed mock stays safe under `vi.useFakeTimers()`. On a top-level `{ content, ... }` response `delayInMs` applies to `doGenerate` only — a stream derived from the same object paces itself with the chunk options above. The same option works on `MockEmbeddingModel`'s `{ embeddings, ... }` and `MockImageModel`'s `{ images, ... }` forms.
 
 #### Aborting a Stream
 
@@ -362,6 +391,15 @@ await embed({ model, value: 'Hello' }).catch(() => {}); // first call throws
 const { embedding } = await embed({ model, value: 'Hello' }); // second call recovers
 ```
 
+#### Delays
+
+`doEmbed` can be made slow, or slow to fail, for deadline tests: it settles only once `delayInMs` has elapsed, and the call's `abortSignal` is honored mid-delay. An unset or non-positive delay schedules no timer. The `{ embeddings, ... }` and `{ error, ... }` forms both carry it — see [Delays](#delays) for the full story.
+
+```typescript
+const slowResult = MockEmbeddingModel.from({ embeddings: [Embedding.vector()], delayInMs: 5_000 });
+const slowFailure = MockEmbeddingModel.from({ error: Errors.serviceUnavailable(), delayInMs: 5_000 });
+```
+
 ### Image Models
 
 Helpers from `ai-test-kit/image` to mock an `ImageModelV4`. `MockImageModel.from()` takes the generated images (base64 strings or binary data); `Image.png()` is a ready-made base64 1x1 PNG (also exported as `base64Png1x1`).
@@ -385,6 +423,15 @@ const model = MockImageModel.from([new Error('429'), [Image.png()]]);
 
 await generateImage({ model, prompt: 'A sunset' }).catch(() => {}); // first call throws
 await generateImage({ model, prompt: 'A sunset' }); // second call recovers
+```
+
+#### Delays
+
+`doGenerate` can be made slow, or slow to fail, for deadline tests: it settles only once `delayInMs` has elapsed, and the call's `abortSignal` is honored mid-delay. An unset or non-positive delay schedules no timer. The `{ images, ... }` and `{ error, ... }` forms both carry it — see [Delays](#delays) for the full story.
+
+```typescript
+const slowResult = MockImageModel.from({ images: [Image.png()], delayInMs: 5_000 });
+const slowFailure = MockImageModel.from({ error: Errors.serviceUnavailable(), delayInMs: 5_000 });
 ```
 
 ### UI Messages
@@ -606,6 +653,8 @@ MockLanguageModel.from(input?: MockResponse | MockResponse[], options?: MockLang
 // MockLanguageModel.from({ content: [Language.text('Hi')] }): a model returning those parts (stream derived from them)
 // MockLanguageModel.from({ doGenerate: 'A', doStream: [...] }): drives doGenerate and doStream independently
 // MockLanguageModel.from({ doGenerate: (options) => result }): a function of the call options (input-dependent)
+// MockLanguageModel.from({ doGenerate: { content: [...], delayInMs: 5_000 } }): resolves after 5s, or aborts if the call's signal fires first
+// MockLanguageModel.from({ doGenerate: { error: Errors.timeout(), delayInMs: 5_000 } }): fails slowly, after 5s
 // MockLanguageModel.from([new Error('429'), 'ok']): sequences responses per call, clamping to the last
 ```
 
@@ -901,7 +950,7 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `EmbeddingModelV4` whose `doEmbed` is a vitest-compatible spy function. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbed.mock.calls`.
+Creates a mock `EmbeddingModelV4` whose `doEmbed` is a vitest-compatible spy function. `input` is an `Array<EmbeddingVector>` (the embeddings), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. The `{ embeddings, ... }` and `{ error, ... }` forms also take a [`delayInMs`](#calldelayoptions) to simulate a slow call. `options` is `{ provider?, modelId?, maxEmbeddingsPerCall?, supportsParallelCalls? }`. Each call is recorded on `doEmbed.mock.calls`.
 
 #### `.callOptions(overrides?)`
 
@@ -943,7 +992,7 @@ The mock factory, and the type of a model created by `.from()`.
 
 #### `.from(input?, options?)`
 
-Creates a mock `ImageModelV4` whose `doGenerate` is a vitest-compatible spy function. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerate.mock.calls`.
+Creates a mock `ImageModelV4` whose `doGenerate` is a vitest-compatible spy function. `input` is the generated images (`string[]` / `Uint8Array[]`), an `Error`, a full result, a function of the call options, or an `Array` of those to sequence responses per call. The `{ images, ... }` and `{ error, ... }` forms also take a [`delayInMs`](#calldelayoptions) to simulate a slow call. `options` is `{ provider?, modelId?, maxImagesPerCall? }`. Each call is recorded on `doGenerate.mock.calls`.
 
 #### `.callOptions(overrides?)`
 
@@ -1347,6 +1396,15 @@ import type { StreamDelayOptions } from 'ai-test-kit';
 // { initialDelayInMs?: number | null; chunkDelayInMs?: number | null; abortSignal?: AbortSignal }
 ```
 
+#### `CallDelayOptions`
+
+Simulated latency for a non-streaming call, shared by the object response forms of `MockLanguageModel`'s `doGenerate`, `MockEmbeddingModel`'s `doEmbed`, and `MockImageModel`'s `doGenerate` — including their `{ error, ... }` forms, so a failure can be slow too. There is no `abortSignal` to configure: the mock reads the one on the call it received, and rejects with an `AbortError` (clearing its timer) the instant that signal fires mid-delay. By default there is no delay and no timer, so an undelayed mock stays inert under `vi.useFakeTimers()`; only a positive `delayInMs` schedules a real `setTimeout`.
+
+```ts
+import type { CallDelayOptions } from 'ai-test-kit';
+// { delayInMs?: number | null }
+```
+
 ### Errors
 
 Exported from the root `ai-test-kit`.
@@ -1381,7 +1439,7 @@ A single mock response. A `string` or `Error` applies to whichever method is cal
 type MockResponse =
   | string // text, for both generate and stream
   | Error // both methods throw
-  | { content; finishReason?; usage? } // generate result, or a derived stream
+  | { content; finishReason?; usage?; delayInMs? } // generate result (delayed), or a derived stream
   | { doGenerate?; doStream? }; // doGenerate and/or doStream explicitly
 ```
 
@@ -1395,7 +1453,7 @@ import type { MockLanguageModel } from 'ai-test-kit/language';
 
 #### `GenerateResponse` / `StreamResponse`
 
-The per-method response shapes used by the `{ doGenerate, doStream }` form of `MockResponse`. `doStream` accepts a bare `Array<StreamPart>`, a `ReadableStream<StreamPart>` (used as-is), or a `{ chunks, initialDelayInMs?, chunkDelayInMs? }` object to simulate delays. Both also accept a `string`, an `Error`, or a **function** of the call options returning the result directly (the escape hatch for input-dependent responses).
+The per-method response shapes used by the `{ doGenerate, doStream }` form of `MockResponse`. `doStream` accepts a bare `Array<StreamPart>`, a `ReadableStream<StreamPart>` (used as-is), or a `{ chunks, initialDelayInMs?, chunkDelayInMs? }` object to simulate delays. `doGenerate` accepts a `{ content, ..., delayInMs? }` or `{ error, delayInMs? }` object to simulate a slow answer or a slow failure — see [`CallDelayOptions`](#calldelayoptions). Both also accept a `string`, an `Error`, or a **function** of the call options returning the result directly (the escape hatch for input-dependent responses).
 
 ```ts
 import type { GenerateResponse, StreamResponse } from 'ai-test-kit/language';
@@ -1438,7 +1496,7 @@ The mock model instance type, as returned by `MockEmbeddingModel.from()`. The na
 
 #### `EmbedResponse`
 
-How to respond to a `doEmbed` call: an `Array<EmbeddingVector>`, an `Error`, a (partial) result, or a function of the call options.
+How to respond to a `doEmbed` call: an `Array<EmbeddingVector>`, an `Error`, a (partial) result, an `{ error, delayInMs? }` failure, or a function of the call options. The two object forms take a [`delayInMs`](#calldelayoptions).
 
 ```ts
 import type { EmbedResponse, EmbeddingVector, MockEmbeddingModelOptions } from 'ai-test-kit/embedding';
@@ -1462,7 +1520,7 @@ The mock model instance type, as returned by `MockImageModel.from()`. The namesp
 
 #### `ImageResponse`
 
-How to respond to a `doGenerate` call: the generated images (`string[]` / `Uint8Array[]`), an `Error`, a (partial) result, or a function of the call options.
+How to respond to a `doGenerate` call: the generated images (`string[]` / `Uint8Array[]`), an `Error`, a (partial) result, an `{ error, delayInMs? }` failure, or a function of the call options. The two object forms take a [`delayInMs`](#calldelayoptions).
 
 ```ts
 import type { GeneratedImages, ImageResponse, MockImageModelOptions } from 'ai-test-kit/image';
