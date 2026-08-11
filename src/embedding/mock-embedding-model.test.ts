@@ -149,6 +149,23 @@ describe('MockEmbeddingModel', () => {
       }
     });
 
+    test('should reject with a TimeoutError when the call abortSignal is a deadline that fires mid-delay', async () => {
+      // Arrange
+      const model = MockEmbeddingModel.from({ embeddings: [[0.1]], delayInMs: 5_000 });
+
+      // Act
+      const error = await embed({
+        model,
+        value: 'hi',
+        abortSignal: AbortSignal.timeout(10),
+        maxRetries: 0,
+      }).catch((e: unknown) => e);
+
+      // Assert
+      expect(error).toBeInstanceOf(DOMException);
+      expect((error as DOMException).name).toBe('TimeoutError');
+    });
+
     test('should schedule no timer when no delay is configured', async () => {
       // Arrange
       vi.useFakeTimers();

@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+import { Errors } from './errors.js';
 import { Language } from './language/language.js';
 import { Streams } from './streams.js';
 
@@ -66,6 +67,52 @@ describe('Streams', () => {
     // Assert
     expect(error).toBeInstanceOf(DOMException);
     expect((error as DOMException).name).toBe('AbortError');
+  });
+
+  test('simulate() should forward the reason of an already-aborted signal untouched', async () => {
+    // Arrange
+    const controller = new AbortController();
+    const reason = Errors.timeout();
+    controller.abort(reason);
+    const stream = Streams.simulate(Language.streamText('nope'), { abortSignal: controller.signal });
+
+    // Act
+    const error = await Streams.toArray(stream).catch((e: unknown) => e);
+
+    // Assert
+    expect(error).toBe(reason);
+    expect((error as DOMException).name).toBe('TimeoutError');
+  });
+
+  test('simulate() should normalize a non-Error abort reason into an AbortError carrying its text', async () => {
+    // Arrange
+    const controller = new AbortController();
+    controller.abort('changed my mind');
+    const stream = Streams.simulate(Language.streamText('nope'), { abortSignal: controller.signal });
+
+    // Act
+    const error = await Streams.toArray(stream).catch((e: unknown) => e);
+
+    // Assert
+    expect(error).toBeInstanceOf(DOMException);
+    expect((error as DOMException).name).toBe('AbortError');
+    expect((error as DOMException).message).toBe('changed my mind');
+  });
+
+  test('simulate() should error with the reason a deadline signal carries, not a generic AbortError', async () => {
+    // Arrange
+    const parts = [...Language.streamText('Hello World'), Language.streamFinish()];
+    const stream = Streams.simulate(parts, { chunkDelayInMs: 5_000, abortSignal: AbortSignal.timeout(10) });
+    const reader = stream.getReader();
+
+    // Act
+    const first = await reader.read();
+    const error = await reader.read().catch((e: unknown) => e);
+
+    // Assert
+    expect(first.value).toEqual(parts[0]);
+    expect(error).toBeInstanceOf(DOMException);
+    expect((error as DOMException).name).toBe('TimeoutError');
   });
 
   test('simulate() should drain without a real timer under fake timers when no delay is set', async () => {

@@ -1,5 +1,5 @@
 import { convertArrayToReadableStream, convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { Errors } from './errors.js';
+import { resolveAbortReason } from './internal/abort.js';
 import { delay } from './internal/delay.js';
 
 /** Simulated timing for a stream. Shared by `Streams.simulate`, `MockLanguageModel.streamResult`, and the `stream` chunks form. */
@@ -8,15 +8,17 @@ export type StreamDelayOptions = {
   initialDelayInMs?: number | null;
   /** Delay between each subsequent chunk. `0` or `null` emit without a timer (safe under fake timers); a positive value waits. Defaults to no delay. */
   chunkDelayInMs?: number | null;
-  /** When provided, the stream errors with an `AbortError` the instant the signal fires. */
+  /** When provided, the stream errors with the signal's own abort reason the instant the signal fires. */
   abortSignal?: AbortSignal;
 };
 
 /**
  * Builds a `ReadableStream`, a port of the AI SDK's `simulateReadableStream` extended with abort handling:
- * when an `abortSignal` fires it errors with an `AbortError` at once (even mid-delay), matching a real
- * provider stream. By default there is no delay and no timer (so it is safe under fake timers); only a
- * positive `initialDelayInMs` / `chunkDelayInMs` schedules a real `setTimeout`.
+ * when an `abortSignal` fires it errors at once (even mid-delay) with the signal's own abort reason,
+ * matching a real provider stream. A signal from `AbortSignal.timeout()` therefore surfaces as a
+ * `TimeoutError`, and a plain `controller.abort()` as an `AbortError`. By default there is no delay and no
+ * timer (so it is safe under fake timers); only a positive `initialDelayInMs` / `chunkDelayInMs` schedules
+ * a real `setTimeout`.
  */
 export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOptions = {}): ReadableStream<CHUNK> => {
   const { abortSignal, initialDelayInMs = null, chunkDelayInMs = null } = opts;
@@ -24,7 +26,7 @@ export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOpt
   return new ReadableStream<CHUNK>({
     async pull(controller) {
       if (abortSignal?.aborted) {
-        controller.error(Errors.abort());
+        controller.error(resolveAbortReason(abortSignal));
         return;
       }
       if (index >= chunks.length) {
@@ -33,7 +35,7 @@ export const simulateStream = <CHUNK>(chunks: Array<CHUNK>, opts: StreamDelayOpt
       }
       await delay(index === 0 ? initialDelayInMs : chunkDelayInMs, abortSignal);
       if (abortSignal?.aborted) {
-        controller.error(Errors.abort());
+        controller.error(resolveAbortReason(abortSignal));
         return;
       }
       controller.enqueue(chunks[index]!);
