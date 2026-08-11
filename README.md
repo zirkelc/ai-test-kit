@@ -245,7 +245,7 @@ const model = MockLanguageModel.from({
 });
 ```
 
-A non-streaming call takes a single `delayInMs` instead. The call's `abortSignal` is wired in automatically: when it fires mid-delay the call rejects with an `AbortError` and the pending timer is cleared, exactly like a real provider cut short by a per-attempt deadline.
+A non-streaming call takes a single `delayInMs` instead. The call's `abortSignal` is wired in automatically: when it fires mid-delay the call rejects with the signal's own abort reason and the pending timer is cleared, exactly like a real provider cut short by a per-attempt deadline. That keeps the two kinds of cancellation apart the way a real call does, so a test can assert on which one fired: a signal from `AbortSignal.timeout()` surfaces as a `TimeoutError`, a plain `controller.abort()` as an `AbortError`.
 
 ```typescript
 import { generateText } from 'ai';
@@ -256,7 +256,7 @@ const model = MockLanguageModel.from({
 });
 
 const result = generateText({ model, prompt: 'Hi', abortSignal: AbortSignal.timeout(1_000) });
-// rejects with an AbortError after 1s, rather than resolving at 5s
+// rejects with a TimeoutError after 1s, rather than resolving at 5s
 ```
 
 The same delay works on the `{ error, ... }` form, for a provider that times out instead of answering:
@@ -271,7 +271,7 @@ Every delay is inert unless positive: `0`, `null`, or an unset delay schedules n
 
 #### Aborting a Stream
 
-The call's `abortSignal` is wired into the simulated stream automatically, so a stream aborted mid-flight errors with an `AbortError` just like a real provider — no custom `ReadableStream` needed. Pair it with `chunkDelayInMs` so the abort can land between chunks.
+The call's `abortSignal` is wired into the simulated stream automatically, so a stream aborted mid-flight errors with the signal's own abort reason just like a real provider, no custom `ReadableStream` needed. As with a non-streaming call, that means a `TimeoutError` for a deadline and an `AbortError` for a manual cancellation. Pair it with `chunkDelayInMs` so the abort can land between chunks.
 
 ```typescript
 import { Language, MockLanguageModel } from 'ai-test-kit/language';
@@ -1389,7 +1389,7 @@ Exported from the root `ai-test-kit`.
 
 #### `StreamDelayOptions`
 
-Simulated timing shared by `Streams.simulate`, `Language.streamResult`, and the `doStream` chunks form. With an `abortSignal`, the stream errors with an `AbortError` the instant the signal fires (mid-delay), matching a real provider stream. By default there is no delay and no timer, so a string / `{ content }` / bare-array `doStream` stays inert under `vi.useFakeTimers()` (only a positive `initialDelayInMs` / `chunkDelayInMs` schedules a real `setTimeout`); a bare array therefore drains like `Streams.from`.
+Simulated timing shared by `Streams.simulate`, `Language.streamResult`, and the `doStream` chunks form. With an `abortSignal`, the stream errors the instant the signal fires (mid-delay) with that signal's own abort reason, matching a real provider stream: a `TimeoutError` for `AbortSignal.timeout()`, an `AbortError` for `controller.abort()`. By default there is no delay and no timer, so a string / `{ content }` / bare-array `doStream` stays inert under `vi.useFakeTimers()` (only a positive `initialDelayInMs` / `chunkDelayInMs` schedules a real `setTimeout`); a bare array therefore drains like `Streams.from`.
 
 ```ts
 import type { StreamDelayOptions } from 'ai-test-kit';
@@ -1398,7 +1398,7 @@ import type { StreamDelayOptions } from 'ai-test-kit';
 
 #### `CallDelayOptions`
 
-Simulated latency for a non-streaming call, shared by the object response forms of `MockLanguageModel`'s `doGenerate`, `MockEmbeddingModel`'s `doEmbed`, and `MockImageModel`'s `doGenerate` — including their `{ error, ... }` forms, so a failure can be slow too. There is no `abortSignal` to configure: the mock reads the one on the call it received, and rejects with an `AbortError` (clearing its timer) the instant that signal fires mid-delay. By default there is no delay and no timer, so an undelayed mock stays inert under `vi.useFakeTimers()`; only a positive `delayInMs` schedules a real `setTimeout`.
+Simulated latency for a non-streaming call, shared by the object response forms of `MockLanguageModel`'s `doGenerate`, `MockEmbeddingModel`'s `doEmbed`, and `MockImageModel`'s `doGenerate` — including their `{ error, ... }` forms, so a failure can be slow too. There is no `abortSignal` to configure: the mock reads the one on the call it received, and rejects with that signal's own abort reason (clearing its timer) the instant it fires mid-delay: a `TimeoutError` for `AbortSignal.timeout()`, an `AbortError` for `controller.abort()`. By default there is no delay and no timer, so an undelayed mock stays inert under `vi.useFakeTimers()`; only a positive `delayInMs` schedules a real `setTimeout`.
 
 ```ts
 import type { CallDelayOptions } from 'ai-test-kit';

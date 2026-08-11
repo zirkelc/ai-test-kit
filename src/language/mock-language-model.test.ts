@@ -221,6 +221,24 @@ describe('MockLanguageModel', () => {
       expect(error).toBeInstanceOf(DOMException);
       expect((error as DOMException).name).toBe('AbortError');
     });
+
+    test('should error with a TimeoutError when the call abortSignal is a deadline that fires mid-stream', async () => {
+      // Arrange
+      const signal = AbortSignal.timeout(10);
+      const parts = [Language.streamStart(), ...Language.streamText('Hello World'), Language.streamFinish()];
+      const model = MockLanguageModel.from({ doStream: { chunks: parts, chunkDelayInMs: 5_000 } });
+      const { stream } = await model.doStream({ prompt: [], abortSignal: signal } as never);
+      const reader = stream.getReader();
+
+      // Act
+      const first = await reader.read();
+      const error = await reader.read().catch((e: unknown) => e);
+
+      // Assert
+      expect(first.value).toEqual(parts[0]);
+      expect(error).toBeInstanceOf(DOMException);
+      expect((error as DOMException).name).toBe('TimeoutError');
+    });
   });
 
   describe('delays', () => {
@@ -298,6 +316,21 @@ describe('MockLanguageModel', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    test('should reject with a TimeoutError when the call abortSignal is a deadline that fires mid-delay', async () => {
+      // Arrange
+      const signal = AbortSignal.timeout(10);
+      const model = MockLanguageModel.from({ doGenerate: { content: [Language.text('slow')], delayInMs: 5_000 } });
+
+      // Act
+      const error = await Promise.resolve(
+        model.doGenerate(MockLanguageModel.callOptions({ abortSignal: signal })),
+      ).catch((e: unknown) => e);
+
+      // Assert
+      expect(error).toBeInstanceOf(DOMException);
+      expect((error as DOMException).name).toBe('TimeoutError');
     });
 
     test('should schedule no timer when no delay is configured', async () => {

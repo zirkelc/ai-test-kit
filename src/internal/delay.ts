@@ -1,11 +1,11 @@
 /** Shared latency simulation for the mock models, so streaming and non-streaming calls wait the same way. */
 
-import { Errors } from '../errors.js';
+import { resolveAbortReason } from './abort.js';
 
 /**
  * Simulated latency for a non-streaming mock call. Shared by the object forms of the `doGenerate`,
  * `doEmbed`, and `{ error }` responses. The call's own `abortSignal` is honored automatically, so a
- * delayed call rejects with an `AbortError` the instant the signal fires.
+ * delayed call rejects with the signal's own abort reason the instant the signal fires.
  */
 export type CallDelayOptions = {
   /**
@@ -44,14 +44,16 @@ export const delay = (ms: number | null | undefined, signal: AbortSignal | undef
   });
 
 /**
- * Waits `ms` before a mock call settles, rejecting with an `AbortError` (and clearing the timer) the
- * instant the signal fires, like a real provider call cut short by a deadline. Without a positive delay
- * it returns immediately, scheduling no timer and ignoring the signal, so an undelayed mock behaves
- * exactly as it does with no delay support at all.
+ * Waits `ms` before a mock call settles, rejecting with the signal's own abort reason (and clearing the
+ * timer) the instant the signal fires, like a real provider call cut short by a deadline. A signal from
+ * `AbortSignal.timeout()` therefore surfaces as a `TimeoutError`, and a plain `controller.abort()` as an
+ * `AbortError`, so a consumer can tell a deadline from a cancellation. Without a positive delay it returns
+ * immediately, scheduling no timer and ignoring the signal, so an undelayed mock behaves exactly as it
+ * does with no delay support at all.
  */
 export const delayOrAbort = async (ms: number | null | undefined, signal: AbortSignal | undefined): Promise<void> => {
   if (ms == null || ms <= 0) return;
-  if (signal?.aborted) throw Errors.abort();
+  if (signal?.aborted) throw resolveAbortReason(signal);
   await delay(ms, signal);
-  if (signal?.aborted) throw Errors.abort();
+  if (signal?.aborted) throw resolveAbortReason(signal);
 };
