@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/zirkelc/ai-test-kit/compare/v3.2.0...v3.3.0) (2026-08-11)
+
+
+### Features
+
+* add delayInMs to non-streaming mock responses ([#29](https://github.com/zirkelc/ai-test-kit/issues/29)) ([53c3931](https://github.com/zirkelc/ai-test-kit/commit/53c39310b0f3dac7e5c1f924a3891300b5d38d05))
+
 ## [3.2.0](https://github.com/zirkelc/ai-test-kit/compare/v3.1.0...v3.2.0) (2026-07-24)
 
 
