@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.1](https://github.com/zirkelc/ai-test-kit/compare/v3.3.0...v3.3.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* throw the signal's own abort reason, not a generic AbortError ([#31](https://github.com/zirkelc/ai-test-kit/issues/31)) ([dd31290](https://github.com/zirkelc/ai-test-kit/commit/dd3129037a83999e44717454ecfc4f34646cd43c))
+
 ## [3.3.0](https://github.com/zirkelc/ai-test-kit/compare/v3.2.0...v3.3.0) (2026-08-11)
 
 
