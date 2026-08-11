@@ -1,19 +1,30 @@
 import type { EmbeddingModelV4, EmbeddingModelV4CallOptions, EmbeddingModelV4Result } from '@ai-sdk/provider';
 import { fn, type Mock } from '@vitest/spy';
+import { type CallDelayOptions, delayOrAbort, type ErrorInput, isErrorInput } from '../internal/delay.js';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { Embedding, type EmbeddingVector } from './embedding.js';
 
 export type { EmbeddingVector };
 
-/** A (possibly partial) embed result; only `embeddings` is required, the rest defaults. */
-type EmbedResultInput = Partial<EmbeddingModelV4Result> & { embeddings: Array<EmbeddingVector> };
+/**
+ * A (possibly partial) embed result; only `embeddings` is required, the rest defaults. `delayInMs` makes
+ * the call take that long to resolve.
+ */
+type EmbedResultInput = Partial<EmbeddingModelV4Result> & CallDelayOptions & { embeddings: Array<EmbeddingVector> };
 
 /**
  * How to respond to a `doEmbed` call. A bare `Array<EmbeddingVector>` is the common case (just the
- * embeddings, with default usage). A function receives the call options and returns the result
- * directly — the escape hatch for input-dependent responses.
+ * embeddings, with default usage). The `{ embeddings, ... }` and `{ error, ... }` forms take a
+ * `delayInMs` to simulate a slow answer or a slow failure, aborting mid-delay when the call's
+ * `abortSignal` fires. A function receives the call options and returns the result directly — the
+ * escape hatch for input-dependent responses.
  */
-export type EmbedResponse = Array<EmbeddingVector> | Error | EmbedResultInput | EmbeddingModelV4['doEmbed'];
+export type EmbedResponse =
+  | Array<EmbeddingVector>
+  | Error
+  | EmbedResultInput
+  | ErrorInput
+  | EmbeddingModelV4['doEmbed'];
 
 /** Optional identity overrides for a mock embedding model. */
 export type MockEmbeddingModelOptions = {
@@ -49,7 +60,12 @@ const resolveEmbed = async (
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
   if (Array.isArray(response)) return Embedding.result(response);
-  const { embeddings, ...rest } = response;
+  if (isErrorInput(response)) {
+    await delayOrAbort(response.delayInMs, options.abortSignal);
+    throw response.error;
+  }
+  const { embeddings, delayInMs, ...rest } = response;
+  await delayOrAbort(delayInMs, options.abortSignal);
   return Embedding.result(embeddings, rest);
 };
 

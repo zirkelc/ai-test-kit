@@ -9,24 +9,32 @@ import type {
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { fn, type Mock } from '@vitest/spy';
+import { type CallDelayOptions, delayOrAbort, type ErrorInput, isErrorInput } from '../internal/delay.js';
 import { defaultProvider, nextModelId } from '../internal/identity.js';
 import { Language } from './language.js';
 import type { StreamDelayOptions } from '../streams.js';
 
-/** A (possibly partial) non-streaming result; only `content` is required, the rest defaults. */
-type GenerateResultInput = Omit<Partial<LanguageModelV4GenerateResult>, 'finishReason'> & {
-  content: Array<LanguageModelV4Content>;
-  /** The finish reason, as a full object or a bare unified value (e.g. `'length'`). */
-  finishReason?: LanguageModelV4FinishReason | LanguageModelV4FinishReason['unified'];
-  /** Token usage; defaults to a small stable value. */
-  usage?: LanguageModelV4Usage;
-};
+/**
+ * A (possibly partial) non-streaming result; only `content` is required, the rest defaults. `delayInMs`
+ * makes `doGenerate` take that long to resolve; a stream derived from the same object ignores it, since
+ * streams time their own chunks via `initialDelayInMs` / `chunkDelayInMs`.
+ */
+type GenerateResultInput = Omit<Partial<LanguageModelV4GenerateResult>, 'finishReason'> &
+  CallDelayOptions & {
+    content: Array<LanguageModelV4Content>;
+    /** The finish reason, as a full object or a bare unified value (e.g. `'length'`). */
+    finishReason?: LanguageModelV4FinishReason | LanguageModelV4FinishReason['unified'];
+    /** Token usage; defaults to a small stable value. */
+    usage?: LanguageModelV4Usage;
+  };
 
 /**
- * How to respond to a `doGenerate` call. A function receives the call options and returns the generate
- * result directly — the escape hatch for input-dependent responses.
+ * How to respond to a `doGenerate` call. The `{ content, ... }` and `{ error, ... }` forms take a
+ * `delayInMs` to simulate a slow answer or a slow failure, aborting mid-delay when the call's
+ * `abortSignal` fires. A function receives the call options and returns the generate result directly —
+ * the escape hatch for input-dependent responses.
  */
-export type GenerateResponse = string | Error | GenerateResultInput | LanguageModelV4['doGenerate'];
+export type GenerateResponse = string | Error | GenerateResultInput | ErrorInput | LanguageModelV4['doGenerate'];
 
 /**
  * How to respond to a `doStream` call. A bare array (or `ReadableStream`) streams without delay; the
@@ -94,7 +102,12 @@ const resolveGenerateResponse = async (
   if (typeof response === 'string') return Language.result(response);
   if (response instanceof Error) throw response;
   if (typeof response === 'function') return response(options);
-  const { content, ...rest } = response;
+  if (isErrorInput(response)) {
+    await delayOrAbort(response.delayInMs, options.abortSignal);
+    throw response.error;
+  }
+  const { content, delayInMs, ...rest } = response;
+  await delayOrAbort(delayInMs, options.abortSignal);
   return Language.result(content, rest);
 };
 
@@ -130,7 +143,8 @@ const resolveGenerate = async (
       : resolveGenerateResponse(response.doGenerate, options);
   }
   if ('content' in response) {
-    const { content, ...rest } = response;
+    const { content, delayInMs, ...rest } = response;
+    await delayOrAbort(delayInMs, options.abortSignal);
     return Language.result(content, rest);
   }
   return notImplemented('doGenerate');

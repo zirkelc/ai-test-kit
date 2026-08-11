@@ -1,6 +1,7 @@
 import type { EmbeddingModelV4CallOptions } from '@ai-sdk/provider';
 import { embed, embedMany } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
+import { Errors } from '../errors.js';
 import { MockEmbeddingModel } from './mock-embedding-model.js';
 
 /** Minimal call options for driving `doEmbed` directly. */
@@ -78,6 +79,93 @@ describe('MockEmbeddingModel', () => {
 
       // Assert
       await expect(result).rejects.toThrow();
+    });
+  });
+
+  describe('delays', () => {
+    test('should resolve a delayed embed result only once the delay has elapsed', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const model = MockEmbeddingModel.from({ embeddings: [[0.1]], delayInMs: 5_000 });
+
+        // Act
+        const result = Promise.resolve(model.doEmbed(callOptions));
+        let settled = false;
+        void result.then(() => {
+          settled = true;
+        });
+        await vi.advanceTimersByTimeAsync(4_999);
+        const settledEarly = settled;
+        await vi.advanceTimersByTimeAsync(1);
+
+        // Assert
+        expect(settledEarly).toBe(false);
+        expect((await result).embeddings).toEqual([[0.1]]);
+        expect('delayInMs' in (await result)).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should reject with the configured error once the delay has elapsed', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const error = Errors.serviceUnavailable();
+        const model = MockEmbeddingModel.from({ error, delayInMs: 5_000 });
+
+        // Act
+        const outcome = Promise.resolve(model.doEmbed(callOptions)).catch((e: unknown) => e);
+        await vi.advanceTimersByTimeAsync(5_000);
+
+        // Assert
+        expect(await outcome).toBe(error);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should reject with an AbortError when the call abortSignal fires mid-delay', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const controller = new AbortController();
+        const model = MockEmbeddingModel.from({ embeddings: [[0.1]], delayInMs: 5_000 });
+
+        // Act
+        const outcome = Promise.resolve(model.doEmbed({ ...callOptions, abortSignal: controller.signal })).catch(
+          (e: unknown) => e,
+        );
+        controller.abort();
+        const error = await outcome;
+
+        // Assert
+        expect(error).toBeInstanceOf(DOMException);
+        expect((error as DOMException).name).toBe('AbortError');
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should schedule no timer when no delay is configured', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      const scheduled = vi.spyOn(globalThis, 'setTimeout');
+      try {
+        const model = MockEmbeddingModel.from({ embeddings: [[0.1]] });
+
+        // Act
+        const result = await model.doEmbed(callOptions);
+
+        // Assert
+        expect(result.embeddings).toEqual([[0.1]]);
+        expect(scheduled.mock.calls.length).toBe(0);
+      } finally {
+        scheduled.mockRestore();
+        vi.useRealTimers();
+      }
     });
   });
 

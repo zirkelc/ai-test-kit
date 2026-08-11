@@ -1,5 +1,6 @@
 import { generateText, streamText } from 'ai';
 import { describe, expect, test, vi } from 'vitest';
+import { Errors } from '../errors.js';
 import { Streams } from '../streams.js';
 import { Language } from './language.js';
 import { MockLanguageModel } from './mock-language-model.js';
@@ -219,6 +220,125 @@ describe('MockLanguageModel', () => {
       expect(first.value).toEqual(parts[0]);
       expect(error).toBeInstanceOf(DOMException);
       expect((error as DOMException).name).toBe('AbortError');
+    });
+  });
+
+  describe('delays', () => {
+    test('should resolve a delayed generate result only once the delay has elapsed', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const model = MockLanguageModel.from({ doGenerate: { content: [Language.text('slow')], delayInMs: 5_000 } });
+
+        // Act
+        const result = Promise.resolve(model.doGenerate(MockLanguageModel.callOptions()));
+        let settled = false;
+        void result.then(() => {
+          settled = true;
+        });
+        await vi.advanceTimersByTimeAsync(4_999);
+        const settledEarly = settled;
+        await vi.advanceTimersByTimeAsync(1);
+
+        // Assert
+        expect(settledEarly).toBe(false);
+        expect((await result).content).toEqual([Language.text('slow')]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should not leak the delay option into the generate result', async () => {
+      // Arrange
+      const model = MockLanguageModel.from({ content: [Language.text('instant')], delayInMs: 0 });
+
+      // Act
+      const result = await model.doGenerate(MockLanguageModel.callOptions());
+
+      // Assert
+      expect('delayInMs' in result).toBe(false);
+    });
+
+    test('should reject with the configured error once the delay has elapsed', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const error = Errors.serviceUnavailable();
+        const model = MockLanguageModel.from({ doGenerate: { error, delayInMs: 5_000 } });
+
+        // Act
+        const outcome = Promise.resolve(model.doGenerate(MockLanguageModel.callOptions())).catch((e: unknown) => e);
+        await vi.advanceTimersByTimeAsync(5_000);
+
+        // Assert
+        expect(await outcome).toBe(error);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should reject with an AbortError when the call abortSignal fires mid-delay', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      try {
+        const controller = new AbortController();
+        const model = MockLanguageModel.from({ doGenerate: { content: [Language.text('slow')], delayInMs: 5_000 } });
+
+        // Act
+        const outcome = Promise.resolve(
+          model.doGenerate(MockLanguageModel.callOptions({ abortSignal: controller.signal })),
+        ).catch((e: unknown) => e);
+        controller.abort();
+        const error = await outcome;
+
+        // Assert
+        expect(error).toBeInstanceOf(DOMException);
+        expect((error as DOMException).name).toBe('AbortError');
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    test('should schedule no timer when no delay is configured', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      const scheduled = vi.spyOn(globalThis, 'setTimeout');
+      try {
+        const model = MockLanguageModel.from({ content: [Language.text('instant')] });
+
+        // Act
+        const result = await model.doGenerate(MockLanguageModel.callOptions());
+
+        // Assert
+        expect(result.content).toEqual([Language.text('instant')]);
+        expect(scheduled.mock.calls.length).toBe(0);
+      } finally {
+        scheduled.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    test('should treat an explicit 0 or null delay as no timer', async () => {
+      // Arrange
+      vi.useFakeTimers();
+      const scheduled = vi.spyOn(globalThis, 'setTimeout');
+      try {
+        const zero = MockLanguageModel.from({ doGenerate: { content: [Language.text('zero')], delayInMs: 0 } });
+        const nulled = MockLanguageModel.from({ doGenerate: { content: [Language.text('null')], delayInMs: null } });
+
+        // Act
+        const zeroResult = await zero.doGenerate(MockLanguageModel.callOptions());
+        const nullResult = await nulled.doGenerate(MockLanguageModel.callOptions());
+
+        // Assert
+        expect(zeroResult.content).toEqual([Language.text('zero')]);
+        expect(nullResult.content).toEqual([Language.text('null')]);
+        expect(scheduled.mock.calls.length).toBe(0);
+      } finally {
+        scheduled.mockRestore();
+        vi.useRealTimers();
+      }
     });
   });
 
